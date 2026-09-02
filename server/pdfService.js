@@ -65,7 +65,9 @@ async function generateCuentaCobroPDF(cuenta, emisor) {
       // Crear documento PDF con márgenes modernos
       const doc = new PDFDocument({
         size: 'LETTER',
-        margins: { top: 38, bottom: 34, left: 42, right: 42 },
+        margins: { top: 34, bottom: 15, left: 42, right: 42 },
+        autoFirstPage: true,
+        bufferPages: true,
         info: {
           Title: `Cuenta de Cobro ${cuenta.consecutivo} - ${cuenta.clienteNombre}`,
           Author: emisor.nombre,
@@ -430,12 +432,12 @@ async function generateCuentaCobroPDF(cuenta, emisor) {
       }
 
       // ================= 9. PIE DE PÁGINA ULTRA-LIMPIO =================
-      const footerY = doc.page.height - 24;
-      doc.moveTo(leftX, footerY - 6).lineTo(rightX, footerY - 6).lineWidth(0.5).stroke('#f1f5f9');
+      const footerY = 762;
+      doc.moveTo(leftX, footerY - 6).lineTo(rightX, footerY - 6).lineWidth(0.5).stroke('#e2e8f0');
       
       doc.font('Helvetica').fontSize(6.5).fillColor(textMuted)
-         .text('Documento emitido electrónicamente con CobroAuto', leftX, footerY, { width: contentWidth / 2, align: 'left' });
-      doc.text('Página 1 de 1', rightX - 100, footerY, { width: 100, align: 'right' });
+         .text('Documento emitido electrónicamente con CobroAuto', leftX, footerY, { width: contentWidth / 2, align: 'left', lineBreak: false });
+      doc.text('Página 1 de 1', rightX - 100, footerY, { width: 100, align: 'right', lineBreak: false });
 
       doc.end();
 
