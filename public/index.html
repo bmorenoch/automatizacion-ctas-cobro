@@ -431,9 +431,10 @@
                     <div class="form-group">
                       <label class="form-label">Tipo y Número de Documento *</label>
                       <div style="display:flex; gap:8px;">
-                        <select class="form-control" id="emisor-tipodoc" style="max-width:100px;">
+                        <select class="form-control" id="emisor-tipodoc" style="max-width:110px;">
                           <option value="CC">CC</option>
                           <option value="NIT">NIT</option>
+                          <option value="RUT">RUT</option>
                           <option value="CE">CE</option>
                           <option value="Pasaporte">Pasaporte</option>
                         </select>
@@ -687,10 +688,12 @@
             <div class="form-group">
               <label class="form-label">Tipo y Número de Documento *</label>
               <div style="display:flex; gap:6px;">
-                <select class="form-control" id="client-tipodoc" style="max-width:85px;">
+                <select class="form-control" id="client-tipodoc" style="max-width:95px;">
                   <option value="NIT">NIT</option>
+                  <option value="RUT">RUT</option>
                   <option value="CC">CC</option>
                   <option value="CE">CE</option>
+                  <option value="Pasaporte">Pasaporte</option>
                 </select>
                 <input type="text" class="form-control" id="client-numdoc" required placeholder="901234567">
                 <input type="text" class="form-control" id="client-dv" placeholder="DV" style="max-width:55px;">

@@ -120,41 +120,26 @@ async function generateCuentaCobroPDF(cuenta, emisor) {
 
       currentY = Math.max(currentY + 10, boxY + boxHeight + 14);
 
-      // ================= CAJAS DE INFORMACIÓN (EMISOR & CLIENTE) =================
+      // ================= CAJAS DE INFORMACIÓN (CLIENTE / DEUDOR & PRESTADOR / PROVEEDOR) =================
       const halfWidth = (contentWidth - 10) / 2;
 
-      // Caja Emisor (A FAVOR DE / DEBE A)
-      const emisorBoxX = 40;
-      const clienteBoxX = 40 + halfWidth + 10;
+      // Caja Cliente (Lado izquierdo: QUIEN DEBE / PAGADOR)
+      const clienteBoxX = 40;
+      const emisorBoxX = 40 + halfWidth + 10;
       const boxesY = currentY;
-      const boxesHeight = 82;
+      const boxesHeight = 84;
 
-      // Dibujar caja Emisor
-      doc.roundedRect(emisorBoxX, boxesY, halfWidth, boxesHeight, 4)
-         .fillAndStroke(bgLight, borderColor);
-      doc.rect(emisorBoxX, boxesY, halfWidth, 18).fill('#e2e8f0');
-      doc.font('Helvetica-Bold').fontSize(8.5).fillColor(primaryColor)
-         .text('A FAVOR DE (BENEFICIARIO):', emisorBoxX + 8, boxesY + 5);
-
-      doc.font('Helvetica-Bold').fontSize(9).fillColor(darkColor)
-         .text(emisor.nombre, emisorBoxX + 8, boxesY + 23, { width: halfWidth - 16 });
-      doc.font('Helvetica').fontSize(8).fillColor(darkColor);
-      doc.text(`${emisor.tipoDoc || 'CC'}: ${emisor.numDoc}${emisor.dv ? '-' + emisor.dv : ''}`, emisorBoxX + 8, boxesY + 36);
-      doc.text(`Tel: ${emisor.telefono || 'N/A'}`, emisorBoxX + 8, boxesY + 47);
-      doc.text(`Email: ${emisor.email || 'N/A'}`, emisorBoxX + 8, boxesY + 58);
-      doc.text(`Ciudad: ${emisor.ciudad || 'Colombia'}`, emisorBoxX + 8, boxesY + 69);
-
-      // Dibujar caja Cliente (DEBE A / COBRADO A)
+      // Dibujar caja Cliente (CLIENTE / PAGADOR)
       doc.roundedRect(clienteBoxX, boxesY, halfWidth, boxesHeight, 4)
          .fillAndStroke(bgLight, borderColor);
       doc.rect(clienteBoxX, boxesY, halfWidth, 18).fill('#e2e8f0');
       doc.font('Helvetica-Bold').fontSize(8.5).fillColor(primaryColor)
-         .text('DEBE A (CLIENTE / PAGADOR):', clienteBoxX + 8, boxesY + 5);
+         .text('CLIENTE / PAGADOR (DEUDOR):', clienteBoxX + 8, boxesY + 5);
 
       doc.font('Helvetica-Bold').fontSize(9).fillColor(darkColor)
          .text(cuenta.clienteNombre || 'CLIENTE', clienteBoxX + 8, boxesY + 23, { width: halfWidth - 16 });
       doc.font('Helvetica').fontSize(8).fillColor(darkColor);
-      const clienteDocStr = cuenta.clienteDoc ? `Doc/NIT: ${cuenta.clienteDoc}` : 'Doc: N/A';
+      const clienteDocStr = cuenta.clienteDoc ? `${cuenta.clienteDoc}` : 'Doc: N/A';
       doc.text(clienteDocStr, clienteBoxX + 8, boxesY + 36);
       if (cuenta.clienteContacto) {
         doc.text(`Atención: ${cuenta.clienteContacto}`, clienteBoxX + 8, boxesY + 47, { width: halfWidth - 16 });
@@ -164,12 +149,27 @@ async function generateCuentaCobroPDF(cuenta, emisor) {
       doc.text(`Email: ${cuenta.clienteEmail || 'N/A'}`, clienteBoxX + 8, boxesY + 58, { width: halfWidth - 16 });
       doc.text(`Ciudad: ${cuenta.clienteCiudad || 'Colombia'}`, clienteBoxX + 8, boxesY + 69);
 
+      // Dibujar caja Emisor (PRESTADOR DEL SERVICIO / PROVEEDOR - A FAVOR DE)
+      doc.roundedRect(emisorBoxX, boxesY, halfWidth, boxesHeight, 4)
+         .fillAndStroke(bgLight, borderColor);
+      doc.rect(emisorBoxX, boxesY, halfWidth, 18).fill('#e2e8f0');
+      doc.font('Helvetica-Bold').fontSize(8.5).fillColor(primaryColor)
+         .text('PRESTADOR / PROVEEDOR (DEBE A FAVOR DE):', emisorBoxX + 8, boxesY + 5);
+
+      doc.font('Helvetica-Bold').fontSize(9).fillColor(darkColor)
+         .text(emisor.nombre, emisorBoxX + 8, boxesY + 23, { width: halfWidth - 16 });
+      doc.font('Helvetica').fontSize(8).fillColor(darkColor);
+      doc.text(`${emisor.tipoDoc || 'CC'}: ${emisor.numDoc}${emisor.dv ? '-' + emisor.dv : ''}`, emisorBoxX + 8, boxesY + 36);
+      doc.text(`Tel / WhatsApp: ${emisor.telefono || 'N/A'}`, emisorBoxX + 8, boxesY + 47);
+      doc.text(`Email: ${emisor.email || 'N/A'}`, emisorBoxX + 8, boxesY + 58);
+      doc.text(`Ciudad: ${emisor.ciudad || 'Colombia'}`, emisorBoxX + 8, boxesY + 69);
+
       currentY = boxesY + boxesHeight + 12;
 
       // ================= CONCEPTO Y DETALLE DEL SERVICIO =================
       doc.roundedRect(40, currentY, contentWidth, 20, 3).fill(primaryColor);
       doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#ffffff');
-      doc.text('DESCRIPCIÓN DEL CONCEPTO / SERVICIO PRESTADO', 48, currentY + 6);
+      doc.text('DEBE POR CONCEPTO DE LOS SERVICIOS PRESTADOS:', 48, currentY + 6);
       doc.text('TOTAL', doc.page.width - 40 - 70, currentY + 6, { width: 62, align: 'right' });
 
       currentY += 20;
