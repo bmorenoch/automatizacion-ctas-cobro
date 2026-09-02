@@ -134,7 +134,7 @@ async function generateCuentaCobroPDF(cuenta, emisor) {
       const logoBuffer = getImageBuffer(emisor.logoUrl);
       if (logoBuffer) {
         try {
-          doc.image(logoBuffer, leftX, headerStartY, { fit: [160, 50], align: 'left', valign: 'top' });
+          doc.image(logoBuffer, leftX, headerStartY, { fit: [115, 30], align: 'left', valign: 'top' });
           logoDrawn = true;
         } catch (e) {
           console.error('Error insertando logo en PDF:', e.message);
