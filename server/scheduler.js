@@ -1,5 +1,5 @@
 const cron = require('node-cron');
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID: uuidv4 } = require('crypto');
 const { readDb, writeDb, addLog } = require('./db');
 const { generateCuentaCobroPDF } = require('./pdfService');
 const { sendCuentaCobroEmail } = require('./mailService');

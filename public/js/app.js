@@ -156,8 +156,7 @@ const app = {
   // ================= 1. DASHBOARD =================
   async loadDashboard() {
     try {
-      const res = await fetch('/api/dashboard');
-      const data = await res.json();
+      const data = await this.fetchJson('/api/dashboard');
 
       document.getElementById('dash-current-period').textContent = data.periodoActual || '';
       document.getElementById('stat-total-mes').textContent = this.formatCurrency(data.totalFacturadoMes);
@@ -263,8 +262,7 @@ const app = {
   // ================= 2. CLIENTES =================
   async loadClients() {
     try {
-      const res = await fetch('/api/clientes');
-      const data = await res.json();
+      const data = await this.fetchJson('/api/clientes');
       this.state.clients = data;
       document.getElementById('badge-clientes-count').textContent = data.length;
 
@@ -530,8 +528,7 @@ const app = {
   // ================= 3. CUENTAS DE COBRO =================
   async loadCuentas() {
     try {
-      const res = await fetch('/api/cuentas');
-      const data = await res.json();
+      const data = await this.fetchJson('/api/cuentas');
       this.state.cuentas = data;
       document.getElementById('badge-cuentas-count').textContent = data.length;
       this.renderCuentasTable(data);
@@ -792,8 +789,7 @@ const app = {
   // ================= 5. CONFIGURACION =================
   async loadEmisor() {
     try {
-      const res = await fetch('/api/emisor');
-      const emisor = await res.json();
+      const emisor = await this.fetchJson('/api/emisor');
       this.state.emisor = emisor;
 
       document.getElementById('emisor-nombre').value = emisor.nombre || '';
@@ -1056,8 +1052,7 @@ const app = {
   // ================= 7. LOGS =================
   async loadLogs() {
     try {
-      const res = await fetch('/api/logs');
-      const logs = await res.json();
+      const logs = await this.fetchJson('/api/logs');
       this.state.logs = logs;
 
       const tbody = document.getElementById('table-logs-body');
@@ -1090,6 +1085,21 @@ const app = {
   },
 
   // ================= UTILITIES =================
+  async fetchJson(url, options = {}) {
+    const res = await fetch(url, options);
+    const text = await res.text();
+    let data;
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch (e) {
+      throw new Error(`Respuesta no válida (${res.status}): ${text.substring(0, 60)}...`);
+    }
+    if (!res.ok) {
+      throw new Error(data.error || `Error HTTP ${res.status}`);
+    }
+    return data;
+  },
+
   formatCurrency(val) {
     const num = Number(val) || 0;
     return '$ ' + num.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 });

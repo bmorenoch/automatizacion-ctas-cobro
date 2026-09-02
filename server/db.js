@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID: uuidv4 } = require('crypto');
 
 const isVercel = Boolean(process.env.VERCEL);
 const DATA_DIR = isVercel ? path.join('/tmp', 'data') : path.join(__dirname, '..', 'data');
@@ -203,6 +203,12 @@ Atentamente,<br>
 };
 
 let inMemoryDb = null;
+let staticSeedDb = null;
+try {
+  staticSeedDb = require('../data/db.json');
+} catch (e) {
+  // Ignorar si no está disponible estáticamente
+}
 
 function readDb() {
   try {
@@ -210,31 +216,27 @@ function readDb() {
       return inMemoryDb;
     }
     if (fs.existsSync(DB_FILE)) {
-      const data = fs.readFileSync(DB_FILE, 'utf8');
-      const parsed = JSON.parse(data);
-      inMemoryDb = {
-        emisor: { ...defaultState.emisor, ...(parsed.emisor || {}) },
-        clientes: Array.isArray(parsed.clientes) && parsed.clientes.length > 0 ? parsed.clientes : defaultState.clientes,
-        cuentas: Array.isArray(parsed.cuentas) && parsed.cuentas.length > 0 ? parsed.cuentas : defaultState.cuentas,
-        logs: Array.isArray(parsed.logs) ? parsed.logs : []
-      };
-      return inMemoryDb;
-    }
-    if (fs.existsSync(BUNDLED_DB_FILE)) {
       try {
-        const bundledRaw = fs.readFileSync(BUNDLED_DB_FILE, 'utf8');
-        const bundledParsed = JSON.parse(bundledRaw);
+        const data = fs.readFileSync(DB_FILE, 'utf8');
+        const parsed = JSON.parse(data);
         inMemoryDb = {
-          emisor: { ...defaultState.emisor, ...(bundledParsed.emisor || {}) },
-          clientes: Array.isArray(bundledParsed.clientes) && bundledParsed.clientes.length > 0 ? bundledParsed.clientes : defaultState.clientes,
-          cuentas: Array.isArray(bundledParsed.cuentas) && bundledParsed.cuentas.length > 0 ? bundledParsed.cuentas : defaultState.cuentas,
-          logs: Array.isArray(bundledParsed.logs) ? bundledParsed.logs : []
+          emisor: { ...defaultState.emisor, ...(parsed.emisor || {}) },
+          clientes: Array.isArray(parsed.clientes) && parsed.clientes.length > 0 ? parsed.clientes : defaultState.clientes,
+          cuentas: Array.isArray(parsed.cuentas) && parsed.cuentas.length > 0 ? parsed.cuentas : defaultState.cuentas,
+          logs: Array.isArray(parsed.logs) ? parsed.logs : []
         };
-        writeDb(inMemoryDb);
         return inMemoryDb;
-      } catch (e) {}
+      } catch (e) {
+        console.error('Error parseando DB_FILE:', e.message);
+      }
     }
-    inMemoryDb = JSON.parse(JSON.stringify(defaultState));
+    const seed = staticSeedDb || defaultState;
+    inMemoryDb = {
+      emisor: { ...defaultState.emisor, ...(seed.emisor || {}) },
+      clientes: Array.isArray(seed.clientes) && seed.clientes.length > 0 ? seed.clientes : defaultState.clientes,
+      cuentas: Array.isArray(seed.cuentas) && seed.cuentas.length > 0 ? seed.cuentas : defaultState.cuentas,
+      logs: Array.isArray(seed.logs) ? seed.logs : []
+    };
     writeDb(inMemoryDb);
     return inMemoryDb;
   } catch (error) {

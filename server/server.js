@@ -3,7 +3,7 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID: uuidv4 } = require('crypto');
 
 const { readDb, writeDb, addLog, UPLOADS_DIR, PDFS_DIR } = require('./db');
 const { generateCuentaCobroPDF, formatMoney } = require('./pdfService');
@@ -32,6 +32,24 @@ const upload = multer({
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Middleware de normalización de rutas para Vercel Serverless Functions
+app.use((req, res, next) => {
+  if (req.url) {
+    if (req.url.startsWith('/api/index.js')) {
+      let subPath = req.url.replace('/api/index.js', '');
+      if (subPath.startsWith('?')) {
+        try {
+          const urlObj = new URL(req.url, 'http://localhost');
+          subPath = urlObj.searchParams.get('path') || '';
+        } catch(e){}
+      }
+      if (!subPath.startsWith('/')) subPath = '/' + subPath;
+      req.url = '/api' + (subPath === '/' ? '' : subPath);
+    }
+  }
+  next();
+});
 
 // Servir archivos estáticos cuando se ejecuta localmente
 app.use(express.static(path.join(__dirname, '..', 'public')));
