@@ -412,15 +412,12 @@ apiRouter.get('/cuentas/:id/pdf', async (req, res) => {
       return res.status(404).json({ error: 'Cuenta de cobro no encontrada' });
     }
 
-    let filePath = cuenta.pdfPath;
-
-    if (!filePath || !fs.existsSync(filePath)) {
-      const generated = await generateCuentaCobroPDF(cuenta, db.emisor);
-      filePath = generated.filePath;
-      cuenta.pdfPath = filePath;
-      cuenta.pdfFileName = generated.fileName;
-      writeDb(db);
-    }
+    // Generar PDF siempre con la plantilla y diseño más actualizado
+    const generated = await generateCuentaCobroPDF(cuenta, db.emisor);
+    const filePath = generated.filePath;
+    cuenta.pdfPath = filePath;
+    cuenta.pdfFileName = generated.fileName;
+    writeDb(db);
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="${cuenta.pdfFileName || 'cuenta.pdf'}"`);
@@ -440,12 +437,12 @@ apiRouter.post('/cuentas/:id/enviar', async (req, res) => {
       return res.status(404).json({ error: 'Cuenta no encontrada' });
     }
 
-    let filePath = cuenta.pdfPath;
-    if (!filePath || !fs.existsSync(filePath)) {
-      const generated = await generateCuentaCobroPDF(cuenta, db.emisor);
-      filePath = generated.filePath;
-      cuenta.pdfPath = filePath;
-    }
+    // Generar PDF actualizado para el adjunto
+    const generated = await generateCuentaCobroPDF(cuenta, db.emisor);
+    const filePath = generated.filePath;
+    cuenta.pdfPath = filePath;
+    cuenta.pdfFileName = generated.fileName;
+    writeDb(db);
 
     const resultado = await sendCuentaCobroEmail(cuenta, db.emisor, filePath);
     cuenta.estado = 'enviada';
