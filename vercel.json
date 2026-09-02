@@ -2,10 +2,7 @@
   "version": 2,
   "functions": {
     "api/index.js": {
-      "includeFiles": [
-        "data/**",
-        "node_modules/pdfkit/js/standard-fonts/**"
-      ]
+      "includeFiles": "{data/**,node_modules/pdfkit/js/standard-fonts/**}"
     }
   },
   "rewrites": [
