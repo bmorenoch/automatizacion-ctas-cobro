@@ -130,6 +130,10 @@ apiRouter.get('/emisor', (req, res) => {
 apiRouter.post('/emisor', (req, res) => {
   try {
     const db = readDb();
+    if (req.body.smtp) {
+      db.emisor.smtp = { ...(db.emisor.smtp || {}), ...req.body.smtp };
+      delete req.body.smtp;
+    }
     db.emisor = { ...db.emisor, ...req.body };
     writeDb(db);
     addLog('info', 'Configuración del emisor actualizada con éxito.');

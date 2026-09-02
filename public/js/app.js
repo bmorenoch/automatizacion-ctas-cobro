@@ -789,7 +789,23 @@ const app = {
   // ================= 5. CONFIGURACION =================
   async loadEmisor() {
     try {
-      const emisor = await this.fetchJson('/api/emisor');
+      let emisor = await this.fetchJson('/api/emisor');
+      
+      // Fallback a localStorage si la función serverless se reinició
+      const savedLocal = localStorage.getItem('cobroauto_emisor');
+      if (savedLocal) {
+        try {
+          const parsed = JSON.parse(savedLocal);
+          emisor = { ...emisor, ...parsed, smtp: { ...(emisor.smtp || {}), ...(parsed.smtp || {}) } };
+          // Re-sincronizar silenciosamente al servidor
+          fetch('/api/emisor', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(emisor)
+          }).catch(() => {});
+        } catch(e){}
+      }
+
       this.state.emisor = emisor;
 
       document.getElementById('emisor-nombre').value = emisor.nombre || '';
@@ -859,14 +875,15 @@ const app = {
     };
 
     try {
-      const res = await fetch('/api/emisor', {
+      const data = await this.fetchJson('/api/emisor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      const data = await res.json();
       if (data.success) {
-        this.showToast('Datos del emisor actualizados', 'success');
+        this.state.emisor = { ...this.state.emisor, ...data.emisor };
+        localStorage.setItem('cobroauto_emisor', JSON.stringify(this.state.emisor));
+        this.showToast('Configuración del emisor guardada con éxito', 'success');
       }
     } catch (e) {
       this.showToast(`Error: ${e.message}`, 'error');
@@ -976,14 +993,15 @@ const app = {
     };
 
     try {
-      const res = await fetch('/api/emisor', {
+      const data = await this.fetchJson('/api/emisor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ smtp })
       });
-      const data = await res.json();
       if (data.success) {
-        this.showToast('Configuración SMTP guardada', 'success');
+        this.state.emisor.smtp = smtp;
+        localStorage.setItem('cobroauto_emisor', JSON.stringify(this.state.emisor));
+        this.showToast('Configuración SMTP guardada con éxito', 'success');
         await this.loadDashboard();
       }
     } catch (e) {
