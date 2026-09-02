@@ -2,16 +2,8 @@
   "version": 2,
   "rewrites": [
     {
-      "source": "/api/(.*)",
+      "source": "/(.*)",
       "destination": "/api/index.js"
-    },
-    {
-      "source": "/storage/(.*)",
-      "destination": "/api/index.js"
-    },
-    {
-      "source": "/((?!api|storage|css|js|assets).*)/?",
-      "destination": "/public/index.html"
     }
   ],
   "crons": [
