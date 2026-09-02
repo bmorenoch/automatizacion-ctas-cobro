@@ -5,7 +5,7 @@ const fs = require('fs');
 const multer = require('multer');
 const { randomUUID: uuidv4 } = require('crypto');
 
-const { readDb, writeDb, addLog, UPLOADS_DIR, PDFS_DIR } = require('./db');
+const { readDb, writeDb, addLog, initDb, supabaseDb, UPLOADS_DIR, PDFS_DIR } = require('./db');
 const { generateCuentaCobroPDF, formatMoney } = require('./pdfService');
 const { sendCuentaCobroEmail, verifySmtp, sendTestEmail } = require('./mailService');
 const { initScheduler, procesarCorteDelDia, emitirCuentaCliente, interpolateConcepto } = require('./scheduler');
@@ -54,6 +54,16 @@ app.use((req, res, next) => {
 // Servir archivos estáticos cuando se ejecuta localmente
 app.use(express.static(path.join(__dirname, '..', 'public')));
 app.use('/storage/uploads', express.static(UPLOADS_DIR));
+
+// Sincronizar con Supabase antes de atender llamadas a la API
+app.use(async (req, res, next) => {
+  if (req.url && (req.url.startsWith('/api') || req.url.startsWith('/dashboard'))) {
+    try {
+      await initDb();
+    } catch (e) {}
+  }
+  next();
+});
 
 // ================= ROUTER DE LA API =================
 const apiRouter = express.Router();

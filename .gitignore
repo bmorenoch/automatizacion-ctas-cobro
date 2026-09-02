@@ -6,3 +6,4 @@ storage/uploads/*
 !storage/uploads/.gitkeep
 storage/pdfs/*
 !storage/pdfs/.gitkeep
+.env

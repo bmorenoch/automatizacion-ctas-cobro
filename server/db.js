@@ -210,6 +210,23 @@ try {
   // Ignorar si no está disponible estáticamente
 }
 
+const supabaseDb = require('./supabase');
+
+async function initDb() {
+  if (supabaseDb.isConfigured()) {
+    try {
+      const data = await supabaseDb.loadFromSupabase(defaultState);
+      if (data) {
+        inMemoryDb = data;
+        return inMemoryDb;
+      }
+    } catch (e) {
+      console.warn('Aviso: no se pudo cargar de Supabase, usando almacenamiento local:', e.message);
+    }
+  }
+  return readDb();
+}
+
 function readDb() {
   try {
     if (inMemoryDb) {
@@ -252,11 +269,22 @@ function writeDb(data) {
       fs.mkdirSync(DATA_DIR, { recursive: true });
     }
     fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf8');
-    return true;
   } catch (error) {
-    console.error('Error guardando base de datos:', error.message);
-    return false;
+    if (!isVercel) console.error('Error guardando base de datos local:', error.message);
   }
+
+  // Sincronizar asíncronamente con Supabase si está activo
+  if (supabaseDb.isConfigured()) {
+    Promise.all([
+      supabaseDb.saveEmisor(data.emisor),
+      supabaseDb.syncClients(data.clientes),
+      supabaseDb.syncCuentas(data.cuentas)
+    ]).catch(err => {
+      console.error('Error sincronizando con Supabase:', err.message);
+    });
+  }
+
+  return true;
 }
 
 function addLog(tipo, mensaje, detalles = '') {
@@ -274,6 +302,11 @@ function addLog(tipo, mensaje, detalles = '') {
     db.logs = db.logs.slice(0, 200);
   }
   writeDb(db);
+
+  if (supabaseDb.isConfigured()) {
+    supabaseDb.addLog(newLog).catch(() => {});
+  }
+
   return newLog;
 }
 
@@ -283,5 +316,8 @@ module.exports = {
   PDFS_DIR,
   readDb,
   writeDb,
-  addLog
+  addLog,
+  initDb,
+  defaultState,
+  supabaseDb
 };
