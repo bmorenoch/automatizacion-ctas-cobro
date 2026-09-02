@@ -95,10 +95,14 @@ const app = {
 
     // Bank Accounts
     document.getElementById('btn-add-bank')?.addEventListener('click', () => this.addBankAccountRow());
+    document.getElementById('btn-save-banks')?.addEventListener('click', () => this.saveBankAccounts());
 
-    // File Uploads
+    // File Uploads & Branding
     document.getElementById('file-upload-firma')?.addEventListener('change', (e) => this.uploadFile(e.target.files[0], 'firma'));
     document.getElementById('file-upload-logo')?.addEventListener('change', (e) => this.uploadFile(e.target.files[0], 'logo'));
+    document.getElementById('btn-save-branding')?.addEventListener('click', () => this.saveBranding());
+    document.getElementById('btn-remove-firma')?.addEventListener('click', () => this.removeFirma());
+    document.getElementById('btn-remove-logo')?.addEventListener('click', () => this.removeLogo());
 
     // SMTP Form & Preset
     document.getElementById('form-smtp-config')?.addEventListener('submit', (e) => this.handleSmtpSubmit(e));
@@ -932,6 +936,60 @@ const app = {
     this.renderBankAccounts();
   },
 
+  async saveBankAccounts() {
+    try {
+      const data = await this.fetchJson('/api/emisor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bancos: this.state.bancosList })
+      });
+      if (data.success) {
+        this.state.emisor.bancos = this.state.bancosList;
+        localStorage.setItem('cobroauto_emisor', JSON.stringify(this.state.emisor));
+        this.showToast('Cuentas bancarias guardadas con éxito', 'success');
+      }
+    } catch (e) {
+      this.showToast(`Error guardando cuentas bancarias: ${e.message}`, 'error');
+    }
+  },
+
+  async saveBranding() {
+    try {
+      const payload = {
+        firmaUrl: this.state.emisor.firmaUrl || '',
+        logoUrl: this.state.emisor.logoUrl || ''
+      };
+      const data = await this.fetchJson('/api/emisor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (data.success) {
+        this.state.emisor = { ...this.state.emisor, ...data.emisor };
+        localStorage.setItem('cobroauto_emisor', JSON.stringify(this.state.emisor));
+        this.showToast('Firma digitalizada y logo guardados con éxito', 'success');
+      }
+    } catch (e) {
+      this.showToast(`Error guardando firma y logo: ${e.message}`, 'error');
+    }
+  },
+
+  removeFirma() {
+    this.state.emisor.firmaUrl = '';
+    document.getElementById('img-firma-preview').src = '';
+    document.getElementById('img-firma-preview').style.display = 'none';
+    document.getElementById('firma-placeholder').style.display = 'block';
+    this.saveBranding();
+  },
+
+  removeLogo() {
+    this.state.emisor.logoUrl = '';
+    document.getElementById('img-logo-preview').src = '';
+    document.getElementById('img-logo-preview').style.display = 'none';
+    document.getElementById('logo-placeholder').style.display = 'block';
+    this.saveBranding();
+  },
+
   async uploadFile(file, type) {
     if (!file) return;
     const formData = new FormData();
@@ -947,14 +1005,17 @@ const app = {
       if (data.success) {
         this.showToast(`Imagen de ${type} actualizada con éxito`, 'success');
         if (type === 'firma') {
+          this.state.emisor.firmaUrl = data.firmaUrl;
           document.getElementById('img-firma-preview').src = data.firmaUrl;
           document.getElementById('img-firma-preview').style.display = 'block';
           document.getElementById('firma-placeholder').style.display = 'none';
         } else if (type === 'logo') {
+          this.state.emisor.logoUrl = data.logoUrl;
           document.getElementById('img-logo-preview').src = data.logoUrl;
           document.getElementById('img-logo-preview').style.display = 'block';
           document.getElementById('logo-placeholder').style.display = 'none';
         }
+        localStorage.setItem('cobroauto_emisor', JSON.stringify(this.state.emisor));
       } else {
         this.showToast(data.error || 'Error al subir archivo', 'error');
       }

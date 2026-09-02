@@ -506,6 +506,9 @@
                 <div id="bank-accounts-container" style="display:flex; flex-direction:column; gap:12px;">
                   <!-- Dinamico -->
                 </div>
+                <div style="margin-top:18px; text-align:right;">
+                  <button type="button" class="btn btn-primary" id="btn-save-banks">💾 Guardar Cuentas Bancarias</button>
+                </div>
               </div>
             </div>
 
@@ -527,7 +530,8 @@
                     </div>
                     <div style="display:flex; gap:8px;">
                       <input type="file" id="file-upload-firma" accept="image/*" style="display:none;">
-                      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('file-upload-firma').click()">Subir Imagen PNG</button>
+                      <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('file-upload-firma').click()">Subir Imagen PNG</button>
+                      <button type="button" class="btn btn-secondary btn-sm" id="btn-remove-firma" style="color:#f87171;">Quitar Firma</button>
                     </div>
                   </div>
 
@@ -541,10 +545,14 @@
                     </div>
                     <div style="display:flex; gap:8px;">
                       <input type="file" id="file-upload-logo" accept="image/*" style="display:none;">
-                      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('file-upload-logo').click()">Subir Logo</button>
+                      <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('file-upload-logo').click()">Subir Logo</button>
+                      <button type="button" class="btn btn-secondary btn-sm" id="btn-remove-logo" style="color:#f87171;">Quitar Logo</button>
                     </div>
                   </div>
 
+                </div>
+                <div style="margin-top:18px; text-align:right;">
+                  <button type="button" class="btn btn-primary" id="btn-save-branding">💾 Guardar Firma y Logo</button>
                 </div>
               </div>
             </div>
