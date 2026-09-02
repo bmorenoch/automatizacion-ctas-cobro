@@ -1,0 +1,133 @@
+{
+  "emisor": {
+    "nombre": "TU NOMBRE O RAZÓN SOCIAL",
+    "tipoDoc": "CC",
+    "numDoc": "1234567890",
+    "dv": "",
+    "profesion": "Prestador de Servicios Profesionales / Desarrollador / Consultor",
+    "email": "tu_correo@ejemplo.com",
+    "telefono": "+57 300 123 4567",
+    "direccion": "Calle 100 # 15 - 20, Of. 401",
+    "ciudad": "Bogotá D.C., Colombia",
+    "regimenTexto": "Persona Natural No Responsable del Impuesto sobre las Ventas (IVA) - Art. 437 del Estatuto Tributario Nacional.",
+    "prefijoConsecutivo": "CC-",
+    "siguienteNumero": 2,
+    "diasVencimiento": 15,
+    "horaEjecucionAutomatica": "08:00",
+    "bancos": [
+      {
+        "id": "1",
+        "banco": "Bancolombia",
+        "tipoCuenta": "Ahorros",
+        "numeroCuenta": "123-456789-00",
+        "titular": "TU NOMBRE COMPLETO",
+        "docTitular": "CC 1234567890"
+      },
+      {
+        "id": "2",
+        "banco": "Nequi / Daviplata",
+        "tipoCuenta": "Billetera Digital",
+        "numeroCuenta": "300 123 4567",
+        "titular": "TU NOMBRE COMPLETO",
+        "docTitular": "CC 1234567890"
+      }
+    ],
+    "firmaUrl": "",
+    "logoUrl": "",
+    "smtp": {
+      "active": false,
+      "host": "smtp.gmail.com",
+      "port": 465,
+      "secure": true,
+      "user": "",
+      "pass": "",
+      "fromName": "Facturación y Cobranza",
+      "fromEmail": "",
+      "bccEmisor": true
+    },
+    "plantillaEmail": {
+      "asunto": "Cuenta de Cobro {NUMERO_CUENTA} - {PERIODO} - {NOMBRE_EMISOR}",
+      "cuerpo": "Estimado(s) <strong>{NOMBRE_CLIENTE}</strong>,<br><br>\nEsperamos se encuentren muy bien.<br><br>\nAdjuntamos la <strong>Cuenta de Cobro No. {NUMERO_CUENTA}</strong> correspondiente a los servicios prestados durante el período <strong>{PERIODO}</strong> por un valor total neto de <strong>{VALOR_TOTAL}</strong>.<br><br>\n<strong>Fecha límite de pago:</strong> {FECHA_VENCIMIENTO}<br><br>\n<strong>Datos para consignación / transferencia:</strong><br>\n{DATOS_BANCARIOS}<br><br>\nAgradecemos enviar el soporte de pago en respuesta a este correo.<br><br>\nAtentamente,<br>\n<strong>{NOMBRE_EMISOR}</strong><br>\n{TELEFONO_EMISOR} | {EMAIL_EMISOR}"
+    }
+  },
+  "clientes": [
+    {
+      "id": "dce1ac21-828d-47c2-a29c-d40a0c1d9505",
+      "nombre": "EMPRESA CLIENTE DEMO S.A.S.",
+      "tipoDoc": "NIT",
+      "numDoc": "901.234.567",
+      "dv": "8",
+      "contacto": "Ing. Carlos Mendoza",
+      "email": "carlos.mendoza@clientedemo.com",
+      "emailCC": "contabilidad@clientedemo.com",
+      "telefono": "+57 (601) 789 4512",
+      "direccion": "Carrera 7 # 71 - 52 Torre A Piso 8",
+      "ciudad": "Bogotá D.C.",
+      "concepto": "Prestación de servicios profesionales de desarrollo web, soporte técnico y mantenimiento en la nube correspondiente al período {MES} {AÑO}",
+      "valor": 2500000,
+      "aplicarRetefuente": false,
+      "porcentajeRetefuente": 4,
+      "aplicarReteICA": false,
+      "porcentajeReteICA": 0.966,
+      "diaCorte": 25,
+      "envioAutomatico": true,
+      "activo": true,
+      "createdAt": "2026-09-02T01:32:18.859Z",
+      "updatedAt": "2026-09-02T01:32:18.860Z"
+    }
+  ],
+  "cuentas": [
+    {
+      "id": "a3a6412f-5bc9-4d2f-8aa3-e8462f00c87e",
+      "consecutivo": "CC-001",
+      "numero": 1,
+      "clienteId": "dce1ac21-828d-47c2-a29c-d40a0c1d9505",
+      "clienteNombre": "EMPRESA CLIENTE DEMO S.A.S.",
+      "clienteDoc": "NIT: 901.234.567-8",
+      "clienteContacto": "Ing. Carlos Mendoza",
+      "clienteEmail": "carlos.mendoza@clientedemo.com",
+      "clienteEmailCC": "contabilidad@clientedemo.com",
+      "clienteDireccion": "Carrera 7 # 71 - 52 Torre A Piso 8",
+      "clienteCiudad": "Bogotá D.C.",
+      "fechaEmision": "2026-09-02",
+      "fechaVencimiento": "2026-09-17",
+      "periodo": "Septiembre 2026",
+      "concepto": "Prestación de servicios profesionales de desarrollo web, soporte técnico y mantenimiento en la nube correspondiente al período Septiembre 2026",
+      "subtotal": 2500000,
+      "retefuente": 0,
+      "reteICA": 0,
+      "totalNeto": 2500000,
+      "totalEnLetras": "DOS MILLONES QUINIENTOS MIL PESOS M/CTE.",
+      "estado": "pagada",
+      "fechaEnvio": null,
+      "fechaPago": "2026-09-02",
+      "pdfPath": "D:\\antigravity\\AUTOMATIZACION CTAS DE COBRO\\storage\\pdfs\\CC-001_EMPRESA_CLIENTE_DEMO_S_A_S__Septiembre_2026.pdf",
+      "pdfFileName": "CC-001_EMPRESA_CLIENTE_DEMO_S_A_S__Septiembre_2026.pdf",
+      "generadaPorScheduler": false,
+      "createdAt": "2026-09-02T01:32:30.412Z"
+    }
+  ],
+  "logs": [
+    {
+      "id": "bd89f245-809f-49dc-92a3-72f5b71d22bc",
+      "timestamp": "2026-09-02T01:32:50.645Z",
+      "tipo": "info",
+      "mensaje": "Estado de cuenta CC-001 cambiado a: pagada",
+      "detalles": ""
+    },
+    {
+      "id": "ca000ef4-0442-47ae-b688-3625fd5e930e",
+      "timestamp": "2026-09-02T01:32:30.500Z",
+      "tipo": "info",
+      "mensaje": "Cuenta CC-001 generada en estado borrador para EMPRESA CLIENTE DEMO S.A.S.",
+      "detalles": ""
+    },
+    {
+      "id": "7a52bd43-5a38-425c-8b13-f679f6f9d1d8",
+      "timestamp": "2026-09-02T01:32:18.860Z",
+      "tipo": "info",
+      "mensaje": "Sistema de Cuentas de Cobro inicializado correctamente.",
+      "detalles": "Base de datos lista para operar."
+    }
+  ]
+}

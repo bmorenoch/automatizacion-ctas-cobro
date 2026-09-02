@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CobroAuto | Automatización de Cuentas de Cobro</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- ================= SIDEBAR ================= -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">⚡</div>
+        <div class="brand-text">
+          <h1>CobroAuto</h1>
+          <span>Facturación Recurrente</span>
+        </div>
+      </div>
+
+      <nav class="nav-menu">
+        <a class="nav-item active" data-tab="dashboard">
+          <span class="icon">📊</span>
+          <span>Panel Principal</span>
+        </a>
+        <a class="nav-item" data-tab="clientes">
+          <span class="icon">👥</span>
+          <span>Clientes & Recurrencias</span>
+          <span class="badge" id="badge-clientes-count">0</span>
+        </a>
+        <a class="nav-item" data-tab="cuentas">
+          <span class="icon">📄</span>
+          <span>Cuentas de Cobro</span>
+          <span class="badge" id="badge-cuentas-count">0</span>
+        </a>
+        <a class="nav-item" data-tab="nueva-cuenta">
+          <span class="icon">✨</span>
+          <span>Emisión Rápida</span>
+        </a>
+        <a class="nav-item" data-tab="configuracion">
+          <span class="icon">⚙️</span>
+          <span>Configuración</span>
+        </a>
+        <a class="nav-item" data-tab="logs">
+          <span class="icon">📜</span>
+          <span>Registro de Auditoría</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="smtp-status-card" id="smtp-status-box">
+          <div class="status-indicator inactive" id="smtp-indicator"></div>
+          <div>
+            <strong style="display:block; color:#fff;" id="smtp-status-text">Correo Inactivo</strong>
+            <span style="color:var(--text-muted); font-size:11px;" id="smtp-status-sub">Configurar en Ajustes</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ================= MAIN WRAPPER ================= -->
+    <div class="main-wrapper">
+      
+      <!-- TOPBAR -->
+      <header class="topbar">
+        <div class="page-title">
+          <h2 id="topbar-title">Panel de Control</h2>
+          <p id="topbar-subtitle">Gestión automatizada de cobros recurrentes</p>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-secondary btn-sm" id="btn-trigger-cron" title="Comprobar cortes de hoy y generar">
+            <span>⏰</span>
+            <span>Verificar Cortes de Hoy</span>
+          </button>
+          <button class="btn btn-primary btn-sm" id="btn-open-new-client">
+            <span>➕</span>
+            <span>Nuevo Cliente</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- CONTENT BODY -->
+      <main class="content-body">
+        
+        <!-- 1. TAB DASHBOARD -->
+        <section class="tab-pane active" id="tab-dashboard">
+          
+          <!-- Metricas Principales -->
+          <div class="stats-grid">
+            <div class="stat-card accent-indigo">
+              <div class="stat-info">
+                <span>Facturado este Mes (<span id="dash-current-period">-</span>)</span>
+                <h3 id="stat-total-mes">$ 0</h3>
+                <small id="stat-mes-count">0 cuentas emitidas</small>
+              </div>
+              <div class="stat-icon primary">💰</div>
+            </div>
+
+            <div class="stat-card accent-amber">
+              <div class="stat-info">
+                <span>Pendiente por Cobrar</span>
+                <h3 id="stat-total-pendiente">$ 0</h3>
+                <small id="stat-pendiente-count">0 cuentas pendientes</small>
+              </div>
+              <div class="stat-icon amber">⏳</div>
+            </div>
+
+            <div class="stat-card accent-emerald">
+              <div class="stat-info">
+                <span>Recaudado / Pagado</span>
+                <h3 id="stat-total-pagado">$ 0</h3>
+                <small>Pagos confirmados</small>
+              </div>
+              <div class="stat-icon emerald">✅</div>
+            </div>
+
+            <div class="stat-card accent-cyan">
+              <div class="stat-info">
+                <span>Clientes Recurrentes</span>
+                <h3 id="stat-clientes-activos">0</h3>
+                <small>Programados para corte</small>
+              </div>
+              <div class="stat-icon cyan">👥</div>
+            </div>
+          </div>
+
+          <!-- Dos Columnas: Cuentas Recientes y Próximos Cortes -->
+          <div class="dash-grid-2">
+            
+            <!-- Cuentas Recientes -->
+            <div class="card">
+              <div class="card-header">
+                <h3><span>📄</span> Últimas Cuentas Emitidas</h3>
+                <button class="btn btn-secondary btn-sm" onclick="app.navigateTab('cuentas')">Ver Todas</button>
+              </div>
+              <div class="card-body" style="padding:0;">
+                <div class="table-responsive">
+                  <table class="custom-table">
+                    <thead>
+                      <tr>
+                        <th>N°</th>
+                        <th>Cliente</th>
+                        <th>Período</th>
+                        <th>Neto</th>
+                        <th>Estado</th>
+                        <th>Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody id="table-recent-invoices">
+                      <tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Cargando...</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Próximos Cortes Programados -->
+            <div class="card">
+              <div class="card-header">
+                <h3><span>📅</span> Próximos Cortes de Facturación</h3>
+                <button class="btn btn-secondary btn-sm" onclick="app.navigateTab('clientes')">Gestionar</button>
+              </div>
+              <div class="card-body">
+                <div class="cut-list" id="list-upcoming-cuts">
+                  <p style="color:var(--text-muted); font-size:13px;">No hay cortes programados próximamente.</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </section>
+
+        <!-- 2. TAB CLIENTES -->
+        <section class="tab-pane" id="tab-clientes">
+          <div class="card">
+            <div class="card-header">
+              <div style="display:flex; align-items:center; gap:12px;">
+                <h3><span>👥</span> Directorio de Clientes y Recurrencias</h3>
+                <input type="text" class="form-control" id="search-client" placeholder="Buscar cliente o NIT..." style="max-width:240px; padding:6px 12px; font-size:12px;">
+              </div>
+              <button class="btn btn-primary btn-sm" id="btn-add-client-tab">
+                <span>➕</span> Agregar Cliente
+              </button>
+            </div>
+            <div class="card-body" style="padding:0;">
+              <div class="table-responsive">
+                <table class="custom-table">
+                  <thead>
+                    <tr>
+                      <th>Cliente / Razón Social</th>
+                      <th>NIT / Cédula</th>
+                      <th>Contacto & Email</th>
+                      <th>Valor Recurrente</th>
+                      <th>Día de Corte</th>
+                      <th>Envío Auto</th>
+                      <th>Estado</th>
+                      <th style="text-align:right;">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="table-clients-body">
+                    <tr><td colspan="8" style="text-align:center; color:var(--text-muted);">Cargando clientes...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. TAB CUENTAS DE COBRO (HISTORIAL) -->
+        <section class="tab-pane" id="tab-cuentas">
+          <div class="card">
+            <div class="card-header">
+              <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+                <h3><span>📄</span> Historial de Cuentas de Cobro</h3>
+                <select class="form-control" id="filter-cuenta-estado" style="max-width:160px; padding:6px 10px; font-size:12px;">
+                  <option value="">Todos los Estados</option>
+                  <option value="borrador">Borrador</option>
+                  <option value="enviada">Enviada por Email</option>
+                  <option value="pagada">Pagada</option>
+                  <option value="anulada">Anulada</option>
+                </select>
+                <input type="text" class="form-control" id="search-cuenta" placeholder="Buscar por cliente o consecutivo..." style="max-width:240px; padding:6px 12px; font-size:12px;">
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="app.navigateTab('nueva-cuenta')">
+                <span>✨</span> Emitir Cuenta Manual
+              </button>
+            </div>
+            <div class="card-body" style="padding:0;">
+              <div class="table-responsive">
+                <table class="custom-table">
+                  <thead>
+                    <tr>
+                      <th>N° Consecutivo</th>
+                      <th>Cliente</th>
+                      <th>Período</th>
+                      <th>Emisión / Venc.</th>
+                      <th>Subtotal Bruto</th>
+                      <th>Retenciones</th>
+                      <th>Total Neto</th>
+                      <th>Estado</th>
+                      <th style="text-align:right;">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="table-cuentas-body">
+                    <tr><td colspan="9" style="text-align:center; color:var(--text-muted);">Cargando cuentas de cobro...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 4. TAB NUEVA CUENTA (EMISION MANUAL RAPIDA) -->
+        <section class="tab-pane" id="tab-nueva-cuenta">
+          <div class="card" style="max-width: 900px; margin: 0 auto;">
+            <div class="card-header">
+              <h3><span>✨</span> Emitir Nueva Cuenta de Cobro</h3>
+              <p style="font-size:12px; color:var(--text-muted);">Genera un cobro manual inmediatamente o selecciona un cliente existente</p>
+            </div>
+            <div class="card-body">
+              <form id="form-manual-invoice">
+                <div class="form-grid">
+                  
+                  <div class="form-group col-span-full">
+                    <label class="form-label">Cargar datos desde Cliente Existente (Opcional):</label>
+                    <select class="form-control" id="manual-select-client">
+                      <option value="">-- Seleccionar cliente para autocompletar o ingresar manualmente --</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Nombre / Razón Social del Cliente *</label>
+                    <input type="text" class="form-control" id="manual-cliente-nombre" required placeholder="Ej. ACME Corp S.A.S.">
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Documento / NIT *</label>
+                    <input type="text" class="form-control" id="manual-cliente-doc" required placeholder="Ej. NIT: 900.123.456-7">
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Correo Principal de Facturación *</label>
+                    <input type="email" class="form-control" id="manual-cliente-email" required placeholder="facturacion@empresa.com">
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Correos en Copia (CC)</label>
+                    <input type="text" class="form-control" id="manual-cliente-emailcc" placeholder="gerencia@empresa.com, contabilidad@...">
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Ciudad</label>
+                    <input type="text" class="form-control" id="manual-cliente-ciudad" placeholder="Bogotá D.C.">
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Período del Servicio</label>
+                    <input type="text" class="form-control" id="manual-periodo" placeholder="Ej. Septiembre 2026">
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Fecha de Emisión</label>
+                    <input type="date" class="form-control" id="manual-fecha-emision">
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Fecha de Vencimiento</label>
+                    <input type="date" class="form-control" id="manual-fecha-vencimiento">
+                  </div>
+
+                  <div class="form-group col-span-full">
+                    <label class="form-label">
+                      <span>Descripción del Concepto / Servicio Prestado *</span>
+                      <span style="font-size:11px; color:var(--accent-cyan);">Etiquetas: 
+                        <span class="tag-pill" onclick="app.insertTagManual('{MES}')">{MES}</span>
+                        <span class="tag-pill" onclick="app.insertTagManual('{AÑO}')">{AÑO}</span>
+                        <span class="tag-pill" onclick="app.insertTagManual('{PERIODO}')">{PERIODO}</span>
+                      </span>
+                    </label>
+                    <textarea class="form-control" id="manual-concepto" rows="3" required placeholder="Prestación de servicios profesionales de..."></textarea>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Valor Bruto (COP) *</label>
+                    <div class="input-group">
+                      <span class="input-addon">$</span>
+                      <input type="number" class="form-control" id="manual-valor" required min="0" step="1000" placeholder="2500000">
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">¿Aplica Retención en la Fuente?</label>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                      <label class="switch">
+                        <input type="checkbox" id="manual-check-retefuente">
+                        <span class="slider"></span>
+                      </label>
+                      <input type="number" class="form-control" id="manual-pct-retefuente" value="4" step="0.1" style="max-width:80px;" disabled>
+                      <span style="color:var(--text-muted); font-size:12px;">%</span>
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">¿Aplica ReteICA?</label>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                      <label class="switch">
+                        <input type="checkbox" id="manual-check-reteica">
+                        <span class="slider"></span>
+                      </label>
+                      <input type="number" class="form-control" id="manual-pct-reteica" value="0.966" step="0.001" style="max-width:90px;" disabled>
+                      <span style="color:var(--text-muted); font-size:12px;">%</span>
+                    </div>
+                  </div>
+
+                  <!-- Resumen de Liquidacion en Vivo -->
+                  <div class="form-group col-span-full">
+                    <div class="calc-summary-card">
+                      <div class="calc-row">
+                        <span>Subtotal Bruto:</span>
+                        <span id="manual-calc-subtotal">$ 0</span>
+                      </div>
+                      <div class="calc-row" id="manual-calc-retefuente-row" style="display:none;">
+                        <span>(-) Retención en la Fuente:</span>
+                        <span style="color:var(--accent-rose);" id="manual-calc-retefuente">- $ 0</span>
+                      </div>
+                      <div class="calc-row" id="manual-calc-reteica-row" style="display:none;">
+                        <span>(-) ReteICA:</span>
+                        <span style="color:var(--accent-rose);" id="manual-calc-reteica">- $ 0</span>
+                      </div>
+                      <div class="calc-row total-row">
+                        <span>TOTAL NETO A COBRAR:</span>
+                        <span class="neto-val" id="manual-calc-total">$ 0</span>
+                      </div>
+                      <p style="font-size:11px; color:var(--text-dim); margin-top:6px;" id="manual-calc-letras">SON: CERO PESOS M/CTE.</p>
+                    </div>
+                  </div>
+
+                  <div class="form-group col-span-full">
+                    <div class="switch-group">
+                      <label class="switch">
+                        <input type="checkbox" id="manual-enviar-inmediato">
+                        <span class="slider"></span>
+                      </label>
+                      <div>
+                        <strong style="display:block; font-size:13px;">Enviar inmediatamente por correo electrónico al cliente</strong>
+                        <span style="color:var(--text-muted); font-size:11px;">Genera el PDF y lo envía con un solo clic si el servicio SMTP está activo</span>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
+                <div style="margin-top:24px; display:flex; justify-content:flex-end; gap:12px;">
+                  <button type="reset" class="btn btn-secondary">Limpiar Formulario</button>
+                  <button type="submit" class="btn btn-primary" id="btn-submit-manual">
+                    <span>⚡</span> Generar Cuenta de Cobro
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <!-- 5. TAB CONFIGURACION -->
+        <section class="tab-pane" id="tab-configuracion">
+          <div style="display:flex; flex-direction:column; gap:24px; max-width:960px; margin:0 auto;">
+            
+            <!-- Datos del Emisor -->
+            <div class="card">
+              <div class="card-header">
+                <h3><span>👤</span> Datos del Emisor (Beneficiario del Cobro)</h3>
+              </div>
+              <div class="card-body">
+                <form id="form-emisor-config">
+                  <div class="form-grid">
+                    <div class="form-group">
+                      <label class="form-label">Nombre Completo o Razón Social *</label>
+                      <input type="text" class="form-control" id="emisor-nombre" required placeholder="Tu Nombre">
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label">Tipo y Número de Documento *</label>
+                      <div style="display:flex; gap:8px;">
+                        <select class="form-control" id="emisor-tipodoc" style="max-width:100px;">
+                          <option value="CC">CC</option>
+                          <option value="NIT">NIT</option>
+                          <option value="CE">CE</option>
+                          <option value="Pasaporte">Pasaporte</option>
+                        </select>
+                        <input type="text" class="form-control" id="emisor-numdoc" required placeholder="1234567890">
+                        <input type="text" class="form-control" id="emisor-dv" placeholder="DV" style="max-width:55px;" title="Dígito de verificación">
+                      </div>
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label">Profesión / Actividad Comercial</label>
+                      <input type="text" class="form-control" id="emisor-profesion" placeholder="Desarrollador de Software / Consultor">
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label">Correo Electrónico *</label>
+                      <input type="email" class="form-control" id="emisor-email" required placeholder="tu_correo@gmail.com">
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label">Teléfono / WhatsApp *</label>
+                      <input type="text" class="form-control" id="emisor-telefono" required placeholder="+57 300 123 4567">
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label">Dirección</label>
+                      <input type="text" class="form-control" id="emisor-direccion" placeholder="Calle 100 # 15 - 20">
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label">Ciudad y País</label>
+                      <input type="text" class="form-control" id="emisor-ciudad" placeholder="Bogotá D.C., Colombia">
+                    </div>
+
+                    <div class="form-group col-span-full">
+                      <label class="form-label">Leyenda / Certificación Legal Tributaria</label>
+                      <textarea class="form-control" id="emisor-regimen" rows="2" placeholder="Persona Natural No Responsable de IVA - Art. 437 del Estatuto Tributario."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label">Prefijo Consecutivo</label>
+                      <input type="text" class="form-control" id="emisor-prefijo" value="CC-">
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label">Siguiente Número Consecutivo</label>
+                      <input type="number" class="form-control" id="emisor-siguiente-num" value="1" min="1">
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label">Días para Fecha de Vencimiento</label>
+                      <input type="number" class="form-control" id="emisor-dias-venc" value="15" min="1">
+                    </div>
+                  </div>
+
+                  <div style="margin-top:18px; text-align:right;">
+                    <button type="submit" class="btn btn-primary">Guardar Datos del Emisor</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <!-- Cuentas Bancarias -->
+            <div class="card">
+              <div class="card-header">
+                <h3><span>🏦</span> Cuentas Bancarias y Medios de Pago</h3>
+                <button class="btn btn-secondary btn-sm" id="btn-add-bank">➕ Agregar Cuenta</button>
+              </div>
+              <div class="card-body">
+                <div id="bank-accounts-container" style="display:flex; flex-direction:column; gap:12px;">
+                  <!-- Dinamico -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Firma Digital y Logo -->
+            <div class="card">
+              <div class="card-header">
+                <h3><span>✍️</span> Firma Digitalizada y Logo</h3>
+              </div>
+              <div class="card-body">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+                  
+                  <!-- Firma -->
+                  <div style="background:rgba(15,23,42,0.5); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border-color);">
+                    <h4 style="font-size:14px; margin-bottom:8px;">Firma Digitalizada</h4>
+                    <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">Aparecerá automáticamente en todos los PDFs generados</p>
+                    <div id="firma-preview-box" style="height:90px; background:#fff; border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center; margin-bottom:12px; overflow:hidden;">
+                      <span style="color:#94a3b8; font-size:12px;" id="firma-placeholder">Sin firma cargada</span>
+                      <img id="img-firma-preview" src="" style="max-height:80px; max-width:90%; display:none;">
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                      <input type="file" id="file-upload-firma" accept="image/*" style="display:none;">
+                      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('file-upload-firma').click()">Subir Imagen PNG</button>
+                    </div>
+                  </div>
+
+                  <!-- Logo -->
+                  <div style="background:rgba(15,23,42,0.5); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border-color);">
+                    <h4 style="font-size:14px; margin-bottom:8px;">Logo Institucional</h4>
+                    <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">Encabezado superior izquierdo del documento PDF</p>
+                    <div id="logo-preview-box" style="height:90px; background:#fff; border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center; margin-bottom:12px; overflow:hidden;">
+                      <span style="color:#94a3b8; font-size:12px;" id="logo-placeholder">Sin logo cargado</span>
+                      <img id="img-logo-preview" src="" style="max-height:80px; max-width:90%; display:none;">
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                      <input type="file" id="file-upload-logo" accept="image/*" style="display:none;">
+                      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('file-upload-logo').click()">Subir Logo</button>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+
+            <!-- Configuración SMTP Correo -->
+            <div class="card">
+              <div class="card-header">
+                <h3><span>📧</span> Configuración del Servicio de Correo (SMTP)</h3>
+              </div>
+              <div class="card-body">
+                <form id="form-smtp-config">
+                  <div class="form-grid">
+                    
+                    <div class="form-group col-span-full">
+                      <div class="switch-group">
+                        <label class="switch">
+                          <input type="checkbox" id="smtp-active">
+                          <span class="slider"></span>
+                        </label>
+                        <div>
+                          <strong style="display:block; font-size:13px;">Activar servicio de envíos por correo</strong>
+                          <span style="color:var(--text-muted); font-size:11px;">Permite que el sistema envíe los PDFs adjuntos a tus clientes</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label">Servidor SMTP</label>
+                      <select class="form-control" id="smtp-preset">
+                        <option value="gmail">Gmail / Google Workspace (smtp.gmail.com)</option>
+                        <option value="outlook">Outlook / Microsoft 365 (smtp-mail.outlook.com)</option>
+                        <option value="hostinger">Hostinger / cPanel (smtp.hostinger.com)</option>
+                        <option value="custom">Personalizado</option>
+                      </select>
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label">Host SMTP</label>
+                      <input type="text" class="form-control" id="smtp-host" value="smtp.gmail.com" required>
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label">Puerto</label>
+                      <input type="number" class="form-control" id="smtp-port" value="465" required>
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label">Usuario / Correo Remitente</label>
+                      <input type="email" class="form-control" id="smtp-user" placeholder="tu_correo@gmail.com" required>
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label">Contraseña de Aplicación *</label>
+                      <input type="password" class="form-control" id="smtp-pass" placeholder="••••••••••••••••" required>
+                      <small style="color:var(--text-dim); font-size:11px;">Para Gmail: Usa una Contraseña de Aplicación de 16 caracteres de Google Account.</small>
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label">Nombre del Remitente</label>
+                      <input type="text" class="form-control" id="smtp-fromname" placeholder="Ej. Facturación - Tu Nombre">
+                    </div>
+
+                    <div class="form-group col-span-full">
+                      <div class="switch-group">
+                        <label class="switch">
+                          <input type="checkbox" id="smtp-bcc" checked>
+                          <span class="slider"></span>
+                        </label>
+                        <div>
+                          <strong style="display:block; font-size:13px;">Enviar Copia Oculta (BCC) a mi propio correo</strong>
+                          <span style="color:var(--text-muted); font-size:11px;">Recibirás una copia idéntica del correo con el PDF adjunto para tu respaldo</span>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+
+                  <div style="margin-top:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                    <div style="display:flex; gap:8px; align-items:center;">
+                      <input type="email" class="form-control" id="smtp-test-email" placeholder="correo_para_prueba@..." style="width:240px; font-size:12px;">
+                      <button type="button" class="btn btn-secondary btn-sm" id="btn-test-smtp">Probar Conexión</button>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Guardar Configuración SMTP</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- 6. TAB LOGS -->
+        <section class="tab-pane" id="tab-logs">
+          <div class="card">
+            <div class="card-header">
+              <h3><span>📜</span> Registro de Actividad y Auditoría</h3>
+              <button class="btn btn-secondary btn-sm" id="btn-refresh-logs">🔄 Actualizar</button>
+            </div>
+            <div class="card-body" style="padding:0;">
+              <div class="table-responsive">
+                <table class="custom-table">
+                  <thead>
+                    <tr>
+                      <th style="width:170px;">Fecha y Hora</th>
+                      <th style="width:100px;">Tipo</th>
+                      <th>Mensaje</th>
+                      <th>Detalles</th>
+                    </tr>
+                  </thead>
+                  <tbody id="table-logs-body">
+                    <tr><td colspan="4" style="text-align:center; color:var(--text-muted);">Cargando registro...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+
+  </div>
+
+  <!-- ================= MODAL: CLIENTE (CREAR / EDITAR) ================= -->
+  <div class="modal-overlay" id="modal-client">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-header">
+        <h3 id="modal-client-title">Agregar Nuevo Cliente Recurrente</h3>
+        <button class="btn-close" onclick="app.closeModal('modal-client')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-client">
+          <input type="hidden" id="client-id">
+          <div class="form-grid">
+            
+            <div class="form-group col-span-2">
+              <label class="form-label">Nombre / Razón Social *</label>
+              <input type="text" class="form-control" id="client-nombre" required placeholder="Ej. EMPRESA CLIENTE S.A.S.">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Tipo y Número de Documento *</label>
+              <div style="display:flex; gap:6px;">
+                <select class="form-control" id="client-tipodoc" style="max-width:85px;">
+                  <option value="NIT">NIT</option>
+                  <option value="CC">CC</option>
+                  <option value="CE">CE</option>
+                </select>
+                <input type="text" class="form-control" id="client-numdoc" required placeholder="901234567">
+                <input type="text" class="form-control" id="client-dv" placeholder="DV" style="max-width:55px;">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Persona de Contacto</label>
+              <input type="text" class="form-control" id="client-contacto" placeholder="Ej. Juan Pérez (Contabilidad)">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Correo Principal (Facturación) *</label>
+              <input type="email" class="form-control" id="client-email" required placeholder="facturacion@cliente.com">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Correos en Copia (CC)</label>
+              <input type="text" class="form-control" id="client-emailcc" placeholder="correo1@cliente.com, correo2@...">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Teléfono</label>
+              <input type="text" class="form-control" id="client-telefono" placeholder="+57 (601) 1234567">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Ciudad</label>
+              <input type="text" class="form-control" id="client-ciudad" placeholder="Bogotá D.C.">
+            </div>
+
+            <div class="form-group col-span-full">
+              <label class="form-label">Dirección</label>
+              <input type="text" class="form-control" id="client-direccion" placeholder="Carrera 7 # 71 - 52">
+            </div>
+
+            <div class="form-group col-span-full">
+              <label class="form-label">
+                <span>Concepto Recurrente Base *</span>
+                <span style="font-size:11px; color:var(--accent-cyan);">Etiquetas: 
+                  <span class="tag-pill" onclick="app.insertTagClient('{MES}')">{MES}</span>
+                  <span class="tag-pill" onclick="app.insertTagClient('{AÑO}')">{AÑO}</span>
+                  <span class="tag-pill" onclick="app.insertTagClient('{PERIODO}')">{PERIODO}</span>
+                </span>
+              </label>
+              <textarea class="form-control" id="client-concepto" rows="2" required placeholder="Prestación de servicios profesionales del período {MES} {AÑO}"></textarea>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Valor Mensual Recurrente (COP) *</label>
+              <div class="input-group">
+                <span class="input-addon">$</span>
+                <input type="number" class="form-control" id="client-valor" required min="0" step="1000" placeholder="2500000">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Día de Corte Mensual *</label>
+              <select class="form-control" id="client-diacorte" required>
+                <option value="1">Día 1 del mes</option>
+                <option value="5">Día 5 del mes</option>
+                <option value="10">Día 10 del mes</option>
+                <option value="15">Día 15 del mes (Quincena)</option>
+                <option value="20">Día 20 del mes</option>
+                <option value="25" selected>Día 25 del mes</option>
+                <option value="28">Día 28 del mes</option>
+                <option value="30">Día 30 / Fin de mes</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">¿Aplica Retención en la Fuente?</label>
+              <div style="display:flex; gap:10px; align-items:center;">
+                <label class="switch">
+                  <input type="checkbox" id="client-check-retefuente">
+                  <span class="slider"></span>
+                </label>
+                <input type="number" class="form-control" id="client-pct-retefuente" value="4" step="0.1" style="max-width:75px;" disabled>
+                <span style="color:var(--text-muted); font-size:12px;">%</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">¿Aplica ReteICA?</label>
+              <div style="display:flex; gap:10px; align-items:center;">
+                <label class="switch">
+                  <input type="checkbox" id="client-check-reteica">
+                  <span class="slider"></span>
+                </label>
+                <input type="number" class="form-control" id="client-pct-reteica" value="0.966" step="0.001" style="max-width:85px;" disabled>
+                <span style="color:var(--text-muted); font-size:12px;">%</span>
+              </div>
+            </div>
+
+            <!-- Resumen en Vivo -->
+            <div class="form-group col-span-full">
+              <div class="calc-summary-card">
+                <div class="calc-row">
+                  <span>Valor Bruto:</span>
+                  <span id="client-calc-subtotal">$ 0</span>
+                </div>
+                <div class="calc-row" id="client-calc-retefuente-row" style="display:none;">
+                  <span>(-) Retefuente:</span>
+                  <span style="color:var(--accent-rose);" id="client-calc-retefuente">- $ 0</span>
+                </div>
+                <div class="calc-row" id="client-calc-reteica-row" style="display:none;">
+                  <span>(-) ReteICA:</span>
+                  <span style="color:var(--accent-rose);" id="client-calc-reteica">- $ 0</span>
+                </div>
+                <div class="calc-row total-row">
+                  <span>VALOR NETO A RECIBIR:</span>
+                  <span class="neto-val" id="client-calc-total">$ 0</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <div class="switch-group">
+                <label class="switch">
+                  <input type="checkbox" id="client-envio-auto" checked>
+                  <span class="slider"></span>
+                </label>
+                <div>
+                  <strong style="display:block; font-size:12px;">Envío Automático por Email</strong>
+                  <span style="color:var(--text-muted); font-size:11px;">En la fecha de corte</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <div class="switch-group">
+                <label class="switch">
+                  <input type="checkbox" id="client-activo" checked>
+                  <span class="slider"></span>
+                </label>
+                <div>
+                  <strong style="display:block; font-size:12px;">Cliente Activo</strong>
+                  <span style="color:var(--text-muted); font-size:11px;">Genera cobros recurrentes</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="modal-footer" style="padding:16px 0 0 0; margin-top:16px; background:none;">
+            <button type="button" class="btn btn-secondary" onclick="app.closeModal('modal-client')">Cancelar</button>
+            <button type="submit" class="btn btn-primary" id="btn-save-client">Guardar Cliente</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: VISOR DE PDF ================= -->
+  <div class="modal-overlay" id="modal-pdf">
+    <div class="modal-dialog modal-full">
+      <div class="modal-header">
+        <h3 id="modal-pdf-title">Vista Previa de Cuenta de Cobro</h3>
+        <div style="display:flex; gap:8px;">
+          <a id="btn-download-pdf-modal" href="#" download class="btn btn-secondary btn-sm">💾 Descargar</a>
+          <button class="btn-close" onclick="app.closeModal('modal-pdf')">&times;</button>
+        </div>
+      </div>
+      <div class="modal-body" style="padding:0; height:100%; display:flex;">
+        <iframe id="iframe-pdf-viewer" src="" style="width:100%; height:100%; border:none;"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenedor de Toast Notifications -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- JS App -->
+  <script src="js/app.js"></script>
+</body>
+</html>
