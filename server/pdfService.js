@@ -5,6 +5,16 @@ const QRCode = require('qrcode');
 const { numeroALetras } = require('./numberToWords');
 const { PDFS_DIR, UPLOADS_DIR } = require('./db');
 
+// Importaciones estáticas para que Vercel empaquete las fuentes de PDFKit
+try {
+  require('pdfkit/js/standard-fonts/Helvetica.cjs');
+  require('pdfkit/js/standard-fonts/HelveticaBold.cjs');
+  require('pdfkit/js/standard-fonts/HelveticaOblique.cjs');
+  require('pdfkit/js/standard-fonts/HelveticaBoldOblique.cjs');
+  require('pdfkit/js/standard-fonts/TimesRoman.cjs');
+  require('pdfkit/js/standard-fonts/Courier.cjs');
+} catch (e) {}
+
 /**
  * Formatea un número como moneda colombiana (ej. $ 2.500.000)
  */
