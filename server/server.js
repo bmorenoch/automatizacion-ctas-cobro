@@ -266,16 +266,44 @@ apiRouter.put('/clientes/:id', (req, res) => {
       return res.status(404).json({ error: 'Cliente no encontrado' });
     }
 
+    const existing = db.clientes[index];
+    const valor = req.body.valor !== undefined && !isNaN(Number(req.body.valor)) ? Number(req.body.valor) : existing.valor;
+    const diaCorte = req.body.diaCorte !== undefined && !isNaN(parseInt(req.body.diaCorte, 10)) ? parseInt(req.body.diaCorte, 10) : existing.diaCorte;
+    const porcentajeRetefuente = req.body.porcentajeRetefuente !== undefined && !isNaN(Number(req.body.porcentajeRetefuente)) ? Number(req.body.porcentajeRetefuente) : (existing.porcentajeRetefuente || 4);
+    const porcentajeReteICA = req.body.porcentajeReteICA !== undefined && !isNaN(Number(req.body.porcentajeReteICA)) ? Number(req.body.porcentajeReteICA) : (existing.porcentajeReteICA || 0.966);
+
     db.clientes[index] = {
-      ...db.clientes[index],
+      ...existing,
       ...req.body,
-      valor: Number(req.body.valor) !== undefined ? Number(req.body.valor) : db.clientes[index].valor,
+      valor,
+      diaCorte,
+      porcentajeRetefuente,
+      porcentajeReteICA,
+      aplicarRetefuente: req.body.aplicarRetefuente !== undefined ? Boolean(req.body.aplicarRetefuente) : existing.aplicarRetefuente,
+      aplicarReteICA: req.body.aplicarReteICA !== undefined ? Boolean(req.body.aplicarReteICA) : existing.aplicarReteICA,
+      envioAutomatico: req.body.envioAutomatico !== undefined ? Boolean(req.body.envioAutomatico) : existing.envioAutomatico,
+      activo: req.body.activo !== undefined ? Boolean(req.body.activo) : existing.activo,
       updatedAt: new Date().toISOString()
     };
 
     writeDb(db);
     addLog('info', `Cliente actualizado: ${db.clientes[index].nombre}`);
     res.json({ success: true, cliente: db.clientes[index] });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+apiRouter.post('/clientes/sync', (req, res) => {
+  try {
+    const db = readDb();
+    if (Array.isArray(req.body.clientes) && req.body.clientes.length > 0) {
+      db.clientes = req.body.clientes;
+      writeDb(db);
+      addLog('info', `Sincronizados ${db.clientes.length} clientes desde almacenamiento local`);
+      return res.json({ success: true, count: db.clientes.length });
+    }
+    res.status(400).json({ error: 'Formato de clientes no válido o lista vacía' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -332,6 +360,21 @@ apiRouter.get('/cuentas', (req, res) => {
     }
 
     res.json(list);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+apiRouter.post('/cuentas/sync', (req, res) => {
+  try {
+    const db = readDb();
+    if (Array.isArray(req.body.cuentas) && req.body.cuentas.length > 0) {
+      db.cuentas = req.body.cuentas;
+      writeDb(db);
+      addLog('info', `Sincronizadas ${db.cuentas.length} cuentas desde almacenamiento local`);
+      return res.json({ success: true, count: db.cuentas.length });
+    }
+    res.status(400).json({ error: 'Formato de cuentas no válido o lista vacía' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

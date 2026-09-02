@@ -266,12 +266,42 @@ const app = {
   // ================= 2. CLIENTES =================
   async loadClients() {
     try {
-      const data = await this.fetchJson('/api/clientes');
-      this.state.clients = data;
-      document.getElementById('badge-clientes-count').textContent = data.length;
+      let clients = [];
+      const savedLocal = localStorage.getItem('cobroauto_clientes');
 
-      this.renderClientsTable(data);
-      this.populateManualClientSelect(data);
+      try {
+        const data = await this.fetchJson('/api/clientes');
+        if (Array.isArray(data)) {
+          clients = data;
+        }
+      } catch (e) {
+        console.warn('Aviso al consultar clientes en el servidor:', e);
+      }
+
+      // Si existe copia local en localStorage, tiene prioridad (evita resets en Vercel)
+      if (savedLocal) {
+        try {
+          const parsed = JSON.parse(savedLocal);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            clients = parsed;
+            // Sincronizar silenciosamente con el backend
+            fetch('/api/clientes/sync', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ clientes: clients })
+            }).catch(() => {});
+          }
+        } catch (e) {}
+      } else if (clients.length > 0) {
+        localStorage.setItem('cobroauto_clientes', JSON.stringify(clients));
+      }
+
+      this.state.clients = clients;
+      const countBadge = document.getElementById('badge-clientes-count');
+      if (countBadge) countBadge.textContent = clients.length;
+
+      this.renderClientsTable(clients);
+      this.populateManualClientSelect(clients);
     } catch (e) {
       console.error('Error cargando clientes:', e);
     }
@@ -449,26 +479,40 @@ const app = {
     };
 
     try {
-      let res;
+      let data;
       if (id) {
-        res = await fetch(`/api/clientes/${id}`, {
+        data = await this.fetchJson(`/api/clientes/${id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
       } else {
-        res = await fetch('/api/clientes', {
+        data = await this.fetchJson('/api/clientes', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
       }
 
-      const data = await res.json();
       if (data.success) {
+        if (id) {
+          const idx = this.state.clients.findIndex(c => c.id === id);
+          if (idx !== -1) {
+            this.state.clients[idx] = data.cliente || { ...this.state.clients[idx], ...payload, id };
+          }
+        } else if (data.cliente) {
+          this.state.clients.unshift(data.cliente);
+        }
+
+        // Persistir en localStorage garantizando que no se pierdan
+        localStorage.setItem('cobroauto_clientes', JSON.stringify(this.state.clients));
+
         this.showToast('Cliente guardado exitosamente', 'success');
         this.closeModal('modal-client');
-        await this.loadClients();
+        this.renderClientsTable(this.state.clients);
+        this.populateManualClientSelect(this.state.clients);
+        const countBadge = document.getElementById('badge-clientes-count');
+        if (countBadge) countBadge.textContent = this.state.clients.length;
         await this.loadDashboard();
       } else {
         this.showToast(data.error || 'Error al guardar cliente', 'error');
@@ -487,11 +531,15 @@ const app = {
     if (!confirm('¿Estás seguro de eliminar este cliente? Se mantendrá el historial de cuentas ya emitidas.')) return;
 
     try {
-      const res = await fetch(`/api/clientes/${id}`, { method: 'DELETE' });
-      const data = await res.json();
+      const data = await this.fetchJson(`/api/clientes/${id}`, { method: 'DELETE' });
       if (data.success) {
+        this.state.clients = this.state.clients.filter(c => c.id !== id);
+        localStorage.setItem('cobroauto_clientes', JSON.stringify(this.state.clients));
         this.showToast('Cliente eliminado', 'info');
-        await this.loadClients();
+        this.renderClientsTable(this.state.clients);
+        this.populateManualClientSelect(this.state.clients);
+        const countBadge = document.getElementById('badge-clientes-count');
+        if (countBadge) countBadge.textContent = this.state.clients.length;
         await this.loadDashboard();
       }
     } catch (e) {
@@ -507,15 +555,19 @@ const app = {
 
     try {
       this.showToast(`Generando cuenta para ${client.nombre}...`, 'info');
-      const res = await fetch(`/api/clientes/${id}/emitir`, {
+      const data = await this.fetchJson(`/api/clientes/${id}/emitir`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enviarInmediato: client.envioAutomatico })
       });
-      const data = await res.json();
 
       if (data.success) {
         this.showToast(`¡Cuenta ${data.cuenta.consecutivo} generada con éxito!`, 'success');
+        if (data.cuenta) {
+          this.state.cuentas = this.state.cuentas.filter(c => c.id !== data.cuenta.id);
+          this.state.cuentas.unshift(data.cuenta);
+          localStorage.setItem('cobroauto_cuentas', JSON.stringify(this.state.cuentas));
+        }
         await this.loadCuentas();
         await this.loadDashboard();
         this.viewPdf(data.cuenta.id);
@@ -532,10 +584,39 @@ const app = {
   // ================= 3. CUENTAS DE COBRO =================
   async loadCuentas() {
     try {
-      const data = await this.fetchJson('/api/cuentas');
-      this.state.cuentas = data;
-      document.getElementById('badge-cuentas-count').textContent = data.length;
-      this.renderCuentasTable(data);
+      let cuentas = [];
+      const savedLocal = localStorage.getItem('cobroauto_cuentas');
+
+      try {
+        const data = await this.fetchJson('/api/cuentas');
+        if (Array.isArray(data)) {
+          cuentas = data;
+        }
+      } catch (e) {
+        console.warn('Aviso al consultar cuentas en el servidor:', e);
+      }
+
+      if (savedLocal) {
+        try {
+          const parsed = JSON.parse(savedLocal);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            cuentas = parsed;
+            // Sincronizar silenciosamente con el servidor
+            fetch('/api/cuentas/sync', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ cuentas })
+            }).catch(() => {});
+          }
+        } catch (e) {}
+      } else if (cuentas.length > 0) {
+        localStorage.setItem('cobroauto_cuentas', JSON.stringify(cuentas));
+      }
+
+      this.state.cuentas = cuentas;
+      const countBadge = document.getElementById('badge-cuentas-count');
+      if (countBadge) countBadge.textContent = cuentas.length;
+      this.renderCuentasTable(cuentas);
     } catch (e) {
       console.error('Error cargando cuentas:', e);
     }
@@ -645,15 +726,17 @@ const app = {
 
   async updateCuentaEstado(id, nuevoEstado) {
     try {
-      const res = await fetch(`/api/cuentas/${id}/estado`, {
+      const data = await this.fetchJson(`/api/cuentas/${id}/estado`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ estado: nuevoEstado })
       });
-      const data = await res.json();
       if (data.success) {
+        const c = this.state.cuentas.find(item => item.id === id);
+        if (c) c.estado = nuevoEstado;
+        localStorage.setItem('cobroauto_cuentas', JSON.stringify(this.state.cuentas));
         this.showToast(`Cuenta marcada como ${nuevoEstado}`, 'success');
-        await this.loadCuentas();
+        this.renderCuentasTable(this.state.cuentas);
         await this.loadDashboard();
       }
     } catch (e) {
@@ -664,11 +747,14 @@ const app = {
   async deleteCuenta(id) {
     if (!confirm('¿Eliminar permanentemente este registro de cuenta y su archivo PDF?')) return;
     try {
-      const res = await fetch(`/api/cuentas/${id}`, { method: 'DELETE' });
-      const data = await res.json();
+      const data = await this.fetchJson(`/api/cuentas/${id}`, { method: 'DELETE' });
       if (data.success) {
+        this.state.cuentas = this.state.cuentas.filter(c => c.id !== id);
+        localStorage.setItem('cobroauto_cuentas', JSON.stringify(this.state.cuentas));
         this.showToast('Cuenta eliminada', 'info');
-        await this.loadCuentas();
+        this.renderCuentasTable(this.state.cuentas);
+        const countBadge = document.getElementById('badge-cuentas-count');
+        if (countBadge) countBadge.textContent = this.state.cuentas.length;
         await this.loadDashboard();
       }
     } catch (e) {
@@ -767,15 +853,19 @@ const app = {
 
     try {
       this.showToast('Generando cuenta y PDF...', 'info');
-      const res = await fetch('/api/cuentas/generar-manual', {
+      const data = await this.fetchJson('/api/cuentas/generar-manual', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      const data = await res.json();
 
       if (data.success) {
         this.showToast(`¡Cuenta ${data.cuenta.consecutivo} generada con éxito!`, 'success');
+        if (data.cuenta) {
+          this.state.cuentas = this.state.cuentas.filter(c => c.id !== data.cuenta.id);
+          this.state.cuentas.unshift(data.cuenta);
+          localStorage.setItem('cobroauto_cuentas', JSON.stringify(this.state.cuentas));
+        }
         await this.loadCuentas();
         await this.loadDashboard();
         this.viewPdf(data.cuenta.id);
