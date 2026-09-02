@@ -14,17 +14,8 @@ const { numeroALetras } = require('./numberToWords');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Configuración de Multer para firmas y logos
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, UPLOADS_DIR);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `${file.fieldname}_${Date.now()}${ext}`);
-  }
-});
-
+// Configuración de Multer para firmas y logos (almacenamiento en memoria para compatibilidad serverless/disco)
+const storage = multer.memoryStorage();
 const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
@@ -37,19 +28,20 @@ const upload = multer({
   }
 });
 
-// Middlewares
+// Middlewares globales
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Servir archivos estáticos del frontend y de uploads
+// Servir archivos estáticos cuando se ejecuta localmente
 app.use(express.static(path.join(__dirname, '..', 'public')));
 app.use('/storage/uploads', express.static(UPLOADS_DIR));
 
-// ================= RUTAS API =================
+// ================= ROUTER DE LA API =================
+const apiRouter = express.Router();
 
 // 1. Dashboard
-app.get('/api/dashboard', (req, res) => {
+apiRouter.get('/dashboard', (req, res) => {
   try {
     const db = readDb();
     const hoy = new Date();
@@ -78,7 +70,7 @@ app.get('/api/dashboard', (req, res) => {
     const proximosCobros = db.clientes
       .filter(c => c.activo)
       .map(c => {
-        let diasFaltantes = c.diaCorte - diaHoy;
+        let diasFaltantes = (c.diaCorte || 25) - diaHoy;
         if (diasFaltantes < 0) {
           diasFaltantes += 30; // Próximo mes
         }
@@ -108,12 +100,16 @@ app.get('/api/dashboard', (req, res) => {
 });
 
 // 2. Emisor Config
-app.get('/api/emisor', (req, res) => {
-  const db = readDb();
-  res.json(db.emisor);
+apiRouter.get('/emisor', (req, res) => {
+  try {
+    const db = readDb();
+    res.json(db.emisor);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-app.post('/api/emisor', (req, res) => {
+apiRouter.post('/emisor', (req, res) => {
   try {
     const db = readDb();
     db.emisor = { ...db.emisor, ...req.body };
@@ -125,42 +121,57 @@ app.post('/api/emisor', (req, res) => {
   }
 });
 
-// Subir firma
-app.post('/api/emisor/upload-firma', upload.single('firma'), (req, res) => {
+// Subir firma (como base64 / archivo)
+apiRouter.post('/emisor/upload-firma', upload.single('firma'), (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No se recibió ningún archivo de firma' });
     }
     const db = readDb();
-    const relativePath = `/storage/uploads/${req.file.filename}`;
-    db.emisor.firmaUrl = relativePath;
+    const base64Data = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+    
+    // Guardar copia en disco si es posible
+    try {
+      if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+      const filename = `firma_${Date.now()}${path.extname(req.file.originalname || '.png')}`;
+      fs.writeFileSync(path.join(UPLOADS_DIR, filename), req.file.buffer);
+    } catch(e){}
+
+    db.emisor.firmaUrl = base64Data;
     writeDb(db);
     addLog('info', 'Firma digitalizada actualizada.');
-    res.json({ success: true, firmaUrl: relativePath });
+    res.json({ success: true, firmaUrl: base64Data });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Subir logo
-app.post('/api/emisor/upload-logo', upload.single('logo'), (req, res) => {
+// Subir logo (como base64 / archivo)
+apiRouter.post('/emisor/upload-logo', upload.single('logo'), (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No se recibió ningún archivo de logo' });
     }
     const db = readDb();
-    const relativePath = `/storage/uploads/${req.file.filename}`;
-    db.emisor.logoUrl = relativePath;
+    const base64Data = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+
+    try {
+      if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+      const filename = `logo_${Date.now()}${path.extname(req.file.originalname || '.png')}`;
+      fs.writeFileSync(path.join(UPLOADS_DIR, filename), req.file.buffer);
+    } catch(e){}
+
+    db.emisor.logoUrl = base64Data;
     writeDb(db);
     addLog('info', 'Logo institucional actualizado.');
-    res.json({ success: true, logoUrl: relativePath });
+    res.json({ success: true, logoUrl: base64Data });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
 // Probar conexión SMTP y enviar correo de prueba
-app.post('/api/emisor/test-smtp', async (req, res) => {
+apiRouter.post('/emisor/test-smtp', async (req, res) => {
   try {
     const { smtp, emailPrueba } = req.body;
     const db = readDb();
@@ -179,18 +190,22 @@ app.post('/api/emisor/test-smtp', async (req, res) => {
 });
 
 // 3. Clientes CRUD
-app.get('/api/clientes', (req, res) => {
-  const db = readDb();
-  res.json(db.clientes);
+apiRouter.get('/clientes', (req, res) => {
+  try {
+    const db = readDb();
+    res.json(db.clientes);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-app.post('/api/clientes', (req, res) => {
+apiRouter.post('/clientes', (req, res) => {
   try {
     const db = readDb();
     const nuevoCliente = {
       id: uuidv4(),
       nombre: req.body.nombre || 'Nuevo Cliente',
-      tipoDoc: req.body.tipoDoc || 'NIT',
+      tipoDoc: req.body.tipoDoc || 'RUT',
       numDoc: req.body.numDoc || '',
       dv: req.body.dv || '',
       contacto: req.body.contacto || '',
@@ -221,7 +236,7 @@ app.post('/api/clientes', (req, res) => {
   }
 });
 
-app.put('/api/clientes/:id', (req, res) => {
+apiRouter.put('/clientes/:id', (req, res) => {
   try {
     const db = readDb();
     const index = db.clientes.findIndex(c => c.id === req.params.id);
@@ -244,7 +259,7 @@ app.put('/api/clientes/:id', (req, res) => {
   }
 });
 
-app.delete('/api/clientes/:id', (req, res) => {
+apiRouter.delete('/clientes/:id', (req, res) => {
   try {
     const db = readDb();
     const cliente = db.clientes.find(c => c.id === req.params.id);
@@ -257,8 +272,8 @@ app.delete('/api/clientes/:id', (req, res) => {
   }
 });
 
-// Emitir cuenta manual para un cliente específico
-app.post('/api/clientes/:id/emitir', async (req, res) => {
+// Emitir cuenta para cliente
+apiRouter.post('/clientes/:id/emitir', async (req, res) => {
   try {
     const db = readDb();
     const cliente = db.clientes.find(c => c.id === req.params.id);
@@ -279,34 +294,42 @@ app.post('/api/clientes/:id/emitir', async (req, res) => {
 });
 
 // 4. Cuentas de Cobro CRUD y Acciones
-app.get('/api/cuentas', (req, res) => {
-  const db = readDb();
-  let list = db.cuentas;
+apiRouter.get('/cuentas', (req, res) => {
+  try {
+    const db = readDb();
+    let list = db.cuentas;
 
-  if (req.query.clienteId) {
-    list = list.filter(c => c.clienteId === req.query.clienteId);
-  }
-  if (req.query.estado) {
-    list = list.filter(c => c.estado === req.query.estado);
-  }
-  if (req.query.periodo) {
-    list = list.filter(c => c.periodo === req.query.periodo);
-  }
+    if (req.query.clienteId) {
+      list = list.filter(c => c.clienteId === req.query.clienteId);
+    }
+    if (req.query.estado) {
+      list = list.filter(c => c.estado === req.query.estado);
+    }
+    if (req.query.periodo) {
+      list = list.filter(c => c.periodo === req.query.periodo);
+    }
 
-  res.json(list);
+    res.json(list);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-app.get('/api/cuentas/:id', (req, res) => {
-  const db = readDb();
-  const cuenta = db.cuentas.find(c => c.id === req.params.id);
-  if (!cuenta) {
-    return res.status(404).json({ error: 'Cuenta no encontrada' });
+apiRouter.get('/cuentas/:id', (req, res) => {
+  try {
+    const db = readDb();
+    const cuenta = db.cuentas.find(c => c.id === req.params.id);
+    if (!cuenta) {
+      return res.status(404).json({ error: 'Cuenta no encontrada' });
+    }
+    res.json(cuenta);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
-  res.json(cuenta);
 });
 
 // Descargar o ver PDF
-app.get('/api/cuentas/:id/pdf', async (req, res) => {
+apiRouter.get('/cuentas/:id/pdf', async (req, res) => {
   try {
     const db = readDb();
     const cuenta = db.cuentas.find(c => c.id === req.params.id);
@@ -316,7 +339,6 @@ app.get('/api/cuentas/:id/pdf', async (req, res) => {
 
     let filePath = cuenta.pdfPath;
 
-    // Si el archivo no existe o se movió, regenerarlo en el vuelo
     if (!filePath || !fs.existsSync(filePath)) {
       const generated = await generateCuentaCobroPDF(cuenta, db.emisor);
       filePath = generated.filePath;
@@ -335,7 +357,7 @@ app.get('/api/cuentas/:id/pdf', async (req, res) => {
 });
 
 // Enviar cuenta por email
-app.post('/api/cuentas/:id/enviar', async (req, res) => {
+apiRouter.post('/cuentas/:id/enviar', async (req, res) => {
   try {
     const db = readDb();
     const cuenta = db.cuentas.find(c => c.id === req.params.id);
@@ -361,8 +383,8 @@ app.post('/api/cuentas/:id/enviar', async (req, res) => {
   }
 });
 
-// Actualizar estado (ej. Pagada, Anulada)
-app.put('/api/cuentas/:id/estado', (req, res) => {
+// Actualizar estado
+apiRouter.put('/cuentas/:id/estado', (req, res) => {
   try {
     const { estado, fechaPago } = req.body;
     const db = readDb();
@@ -385,7 +407,7 @@ app.put('/api/cuentas/:id/estado', (req, res) => {
 });
 
 // Eliminar cuenta
-app.delete('/api/cuentas/:id', (req, res) => {
+apiRouter.delete('/cuentas/:id', (req, res) => {
   try {
     const db = readDb();
     const cuenta = db.cuentas.find(c => c.id === req.params.id);
@@ -406,8 +428,8 @@ app.delete('/api/cuentas/:id', (req, res) => {
   }
 });
 
-// Generación Manual Personalizada
-app.post('/api/cuentas/generar-manual', async (req, res) => {
+// Generación Manual
+apiRouter.post('/cuentas/generar-manual', async (req, res) => {
   try {
     const db = readDb();
     const emisor = db.emisor;
@@ -424,7 +446,7 @@ app.post('/api/cuentas/generar-manual', async (req, res) => {
     const totalEnLetras = numeroALetras(totalNeto);
 
     const fEmision = b.fechaEmision || new Date().toISOString().split('T')[0];
-    const fVencimiento = b.fechaVencimiento || new Date(Date.now() + 15*86400000).toISOString().split('T')[0];
+    const fVencimiento = b.fechaVencimiento || new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0];
 
     const nuevaCuenta = {
       id: uuidv4(),
@@ -482,8 +504,8 @@ app.post('/api/cuentas/generar-manual', async (req, res) => {
   }
 });
 
-// 5. Disparar corte diario manualmente
-app.post('/api/scheduler/ejecutar-corte', async (req, res) => {
+// Disparar corte diario manualmente
+apiRouter.post('/scheduler/ejecutar-corte', async (req, res) => {
   try {
     const resultados = await procesarCorteDelDia();
     res.json({ success: true, resultados });
@@ -492,19 +514,28 @@ app.post('/api/scheduler/ejecutar-corte', async (req, res) => {
   }
 });
 
-// 6. Logs del sistema
-app.get('/api/logs', (req, res) => {
-  const db = readDb();
-  res.json(db.logs);
+// Logs del sistema
+apiRouter.get('/logs', (req, res) => {
+  try {
+    const db = readDb();
+    res.json(db.logs);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-// Ruta para SPA (cualquier ruta no API entrega index.html)
-app.use((req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+// Montar router en ambas rutas para compatibilidad total con Vercel
+app.use('/api', apiRouter);
+app.use('/', apiRouter);
+
+// Manejador global de errores
+app.use((err, req, res, next) => {
+  console.error('Error interno Express:', err);
+  res.status(500).json({ error: err.message || 'Error interno del servidor' });
 });
 
 // Iniciar Servidor solo en entorno local (en Vercel se invoca como Serverless Function)
-if (!process.env.VERCEL) {
+if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`====================================================`);
     console.log(`🚀 Sistema de Cuentas de Cobro Recurrentes`);

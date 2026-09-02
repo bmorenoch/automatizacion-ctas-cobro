@@ -202,42 +202,57 @@ Atentamente,<br>
   ]
 };
 
+let inMemoryDb = null;
+
 function readDb() {
   try {
-    if (!fs.existsSync(DB_FILE)) {
-      if (isVercel && fs.existsSync(BUNDLED_DB_FILE)) {
-        try {
-          const bundledRaw = fs.readFileSync(BUNDLED_DB_FILE, 'utf8');
-          const bundledParsed = JSON.parse(bundledRaw);
-          writeDb(bundledParsed);
-          return bundledParsed;
-        } catch (e) {}
-      }
-      writeDb(defaultState);
-      return JSON.parse(JSON.stringify(defaultState));
+    if (inMemoryDb) {
+      return inMemoryDb;
     }
-    const data = fs.readFileSync(DB_FILE, 'utf8');
-    const parsed = JSON.parse(data);
-    return {
-      emisor: { ...defaultState.emisor, ...(parsed.emisor || {}) },
-      clientes: Array.isArray(parsed.clientes) && parsed.clientes.length > 0 ? parsed.clientes : defaultState.clientes,
-      cuentas: Array.isArray(parsed.cuentas) && parsed.cuentas.length > 0 ? parsed.cuentas : defaultState.cuentas,
-      logs: Array.isArray(parsed.logs) ? parsed.logs : []
-    };
+    if (fs.existsSync(DB_FILE)) {
+      const data = fs.readFileSync(DB_FILE, 'utf8');
+      const parsed = JSON.parse(data);
+      inMemoryDb = {
+        emisor: { ...defaultState.emisor, ...(parsed.emisor || {}) },
+        clientes: Array.isArray(parsed.clientes) && parsed.clientes.length > 0 ? parsed.clientes : defaultState.clientes,
+        cuentas: Array.isArray(parsed.cuentas) && parsed.cuentas.length > 0 ? parsed.cuentas : defaultState.cuentas,
+        logs: Array.isArray(parsed.logs) ? parsed.logs : []
+      };
+      return inMemoryDb;
+    }
+    if (fs.existsSync(BUNDLED_DB_FILE)) {
+      try {
+        const bundledRaw = fs.readFileSync(BUNDLED_DB_FILE, 'utf8');
+        const bundledParsed = JSON.parse(bundledRaw);
+        inMemoryDb = {
+          emisor: { ...defaultState.emisor, ...(bundledParsed.emisor || {}) },
+          clientes: Array.isArray(bundledParsed.clientes) && bundledParsed.clientes.length > 0 ? bundledParsed.clientes : defaultState.clientes,
+          cuentas: Array.isArray(bundledParsed.cuentas) && bundledParsed.cuentas.length > 0 ? bundledParsed.cuentas : defaultState.cuentas,
+          logs: Array.isArray(bundledParsed.logs) ? bundledParsed.logs : []
+        };
+        writeDb(inMemoryDb);
+        return inMemoryDb;
+      } catch (e) {}
+    }
+    inMemoryDb = JSON.parse(JSON.stringify(defaultState));
+    writeDb(inMemoryDb);
+    return inMemoryDb;
   } catch (error) {
     console.error('Error leyendo base de datos:', error);
-    return defaultState;
+    return inMemoryDb || JSON.parse(JSON.stringify(defaultState));
   }
 }
 
 function writeDb(data) {
+  inMemoryDb = data;
   try {
-    const tempFile = DB_FILE + '.tmp';
-    fs.writeFileSync(tempFile, JSON.stringify(data, null, 2), 'utf8');
-    fs.renameSync(tempFile, DB_FILE);
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf8');
     return true;
   } catch (error) {
-    console.error('Error guardando base de datos:', error);
+    console.error('Error guardando base de datos:', error.message);
     return false;
   }
 }
