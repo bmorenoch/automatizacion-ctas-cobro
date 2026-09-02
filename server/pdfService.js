@@ -200,14 +200,14 @@ async function generateCuentaCobroPDF(cuenta, emisor) {
       const cardHeight = 88;
       const cardY = currentY;
 
-      // Tarjeta Izquierda: CLIENTE / COBRAR A (DEUDOR)
+      // Tarjeta Izquierda: CLIENTE
       const cBoxX = leftX;
       doc.roundedRect(cBoxX, cardY, cardWidth, cardHeight, 8)
          .fillAndStroke(cardBg, borderCard);
 
       // Píldora de overline
       doc.font('Helvetica-Bold').fontSize(7.5).fillColor(accentColor)
-         .text('COBRAR A (CLIENTE / DEUDOR):', cBoxX + 12, cardY + 10);
+         .text('CLIENTE:', cBoxX + 12, cardY + 10);
 
       doc.font('Helvetica-Bold').fontSize(10).fillColor(brandDark)
          .text(cuenta.clienteNombre || 'CLIENTE', cBoxX + 12, cardY + 24, { width: cardWidth - 24, height: 14, ellipsis: true });
@@ -233,7 +233,7 @@ async function generateCuentaCobroPDF(cuenta, emisor) {
          .fillAndStroke(cardBg, borderCard);
 
       doc.font('Helvetica-Bold').fontSize(7.5).fillColor(textSecondary)
-         .text('A FAVOR DE (PRESTADOR / EMISOR):', eBoxX + 12, cardY + 10);
+         .text('PRESTADOR DEL SERVICIO:', eBoxX + 12, cardY + 10);
 
       doc.font('Helvetica-Bold').fontSize(10).fillColor(brandDark)
          .text(emisor.nombre, eBoxX + 12, cardY + 24, { width: cardWidth - 24, height: 14, ellipsis: true });
