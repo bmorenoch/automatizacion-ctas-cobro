@@ -51,6 +51,32 @@ function formatDateSpanish(dateStr) {
 }
 
 /**
+ * Convierte un Data URI Base64 o ruta de archivo en un Buffer para PDFKit
+ */
+function getImageBuffer(imageUriOrPath) {
+  if (!imageUriOrPath || typeof imageUriOrPath !== 'string') return null;
+  if (imageUriOrPath.startsWith('data:image/')) {
+    try {
+      const commaIndex = imageUriOrPath.indexOf(',');
+      if (commaIndex !== -1) {
+        return Buffer.from(imageUriOrPath.substring(commaIndex + 1), 'base64');
+      }
+    } catch (e) {
+      console.error('Error decodificando imagen base64:', e.message);
+    }
+  }
+  try {
+    const filePath = path.isAbsolute(imageUriOrPath) 
+      ? imageUriOrPath 
+      : path.join(UPLOADS_DIR, path.basename(imageUriOrPath));
+    if (fs.existsSync(filePath)) {
+      return fs.readFileSync(filePath);
+    }
+  } catch (e) {}
+  return null;
+}
+
+/**
  * Genera el archivo PDF de la Cuenta de Cobro con diseño moderno, limpio y ejecutivo
  * @param {Object} cuenta - Objeto con datos de la cuenta generada
  * @param {Object} emisor - Objeto con datos del emisor
@@ -105,18 +131,13 @@ async function generateCuentaCobroPDF(cuenta, emisor) {
 
       // LADO IZQUIERDO: LOGO O BRANDING DEL EMISOR
       let logoDrawn = false;
-      if (emisor.logoUrl) {
-        const logoPath = path.isAbsolute(emisor.logoUrl) 
-          ? emisor.logoUrl 
-          : path.join(UPLOADS_DIR, path.basename(emisor.logoUrl));
-        
-        if (fs.existsSync(logoPath)) {
-          try {
-            doc.image(logoPath, leftX, headerStartY, { fit: [160, 50], align: 'left', valign: 'top' });
-            logoDrawn = true;
-          } catch (e) {
-            console.error('Error cargando logo en PDF:', e.message);
-          }
+      const logoBuffer = getImageBuffer(emisor.logoUrl);
+      if (logoBuffer) {
+        try {
+          doc.image(logoBuffer, leftX, headerStartY, { fit: [160, 50], align: 'left', valign: 'top' });
+          logoDrawn = true;
+        } catch (e) {
+          console.error('Error insertando logo en PDF:', e.message);
         }
       }
 
@@ -388,19 +409,12 @@ async function generateCuentaCobroPDF(cuenta, emisor) {
       const signatureY = Math.min(currentY + 10, doc.page.height - 108);
 
       // Firma digitalizada si existe
-      let firmaDrawn = false;
-      if (emisor.firmaUrl) {
-        const firmaPath = path.isAbsolute(emisor.firmaUrl)
-          ? emisor.firmaUrl
-          : path.join(UPLOADS_DIR, path.basename(emisor.firmaUrl));
-
-        if (fs.existsSync(firmaPath)) {
-          try {
-            doc.image(firmaPath, leftX, signatureY - 26, { fit: [140, 44], align: 'left' });
-            firmaDrawn = true;
-          } catch (e) {
-            console.error('Error insertando firma en PDF:', e.message);
-          }
+      const firmaBuffer = getImageBuffer(emisor.firmaUrl);
+      if (firmaBuffer) {
+        try {
+          doc.image(firmaBuffer, leftX, signatureY - 26, { fit: [140, 44], align: 'left' });
+        } catch (e) {
+          console.error('Error insertando firma en PDF:', e.message);
         }
       }
 
