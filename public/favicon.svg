@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="billGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#047857"/>
+    </linearGradient>
+    <linearGradient id="innerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+  </defs>
+  <!-- Outer Bill Body -->
+  <rect x="2" y="11" width="60" height="42" rx="6" fill="url(#billGrad)" stroke="#064e3b" stroke-width="1.5"/>
+  <!-- Inner Ornamental Border -->
+  <rect x="6" y="15" width="52" height="34" rx="4" fill="none" stroke="#a7f3d0" stroke-width="1.2" stroke-dasharray="2 1.5"/>
+  <!-- Corner Dots -->
+  <circle cx="10" cy="19" r="2" fill="#a7f3d0"/>
+  <circle cx="54" cy="19" r="2" fill="#a7f3d0"/>
+  <circle cx="10" cy="45" r="2" fill="#a7f3d0"/>
+  <circle cx="54" cy="45" r="2" fill="#a7f3d0"/>
+  <!-- Center Seal -->
+  <circle cx="32" cy="32" r="12" fill="url(#innerGrad)" stroke="#a7f3d0" stroke-width="1.5"/>
+  <!-- Dollar Symbol -->
+  <text x="32" y="38.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif" font-size="18" font-weight="900" fill="#ffffff" text-anchor="middle">$</text>
+</svg>
