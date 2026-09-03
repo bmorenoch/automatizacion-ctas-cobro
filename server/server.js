@@ -239,7 +239,6 @@ apiRouter.post('/clientes', (req, res) => {
       nombre: req.body.nombre || 'Nuevo Cliente',
       tipoDoc: req.body.tipoDoc || 'RUT',
       numDoc: req.body.numDoc || '',
-      dv: req.body.dv || '',
       contacto: req.body.contacto || '',
       email: req.body.email || '',
       emailCC: req.body.emailCC || '',

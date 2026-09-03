@@ -90,7 +90,7 @@ async function emitirCuentaCliente(cliente, fechaEmision = new Date(), options =
 
   const conceptoFinal = interpolateConcepto(cliente.concepto, fechaEmision);
 
-  const clienteDocCompleto = `${cliente.tipoDoc || 'NIT'}: ${cliente.numDoc}${cliente.dv ? '-' + cliente.dv : ''}`;
+  const clienteDocCompleto = `${cliente.tipoDoc || 'NIT'}: ${cliente.numDoc}`;
 
   const nuevaCuenta = {
     id: uuidv4(),

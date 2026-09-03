@@ -328,7 +328,7 @@ const app = {
             <strong style="color:#fff; display:block;">${c.nombre}</strong>
             <small style="color:var(--text-muted);">${c.ciudad || ''}</small>
           </td>
-          <td><code>${c.tipoDoc || 'NIT'}: ${c.numDoc}${c.dv ? '-' + c.dv : ''}</code></td>
+          <td><code>${c.tipoDoc || 'NIT'}: ${c.numDoc}</code></td>
           <td>
             <div>${c.contacto || 'N/A'}</div>
             <small style="color:var(--accent-cyan);">${c.email}</small>
@@ -382,7 +382,6 @@ const app = {
       document.getElementById('client-nombre').value = client.nombre || '';
       document.getElementById('client-tipodoc').value = client.tipoDoc || 'NIT';
       document.getElementById('client-numdoc').value = client.numDoc || '';
-      document.getElementById('client-dv').value = client.dv || '';
       document.getElementById('client-contacto').value = client.contacto || '';
       document.getElementById('client-email').value = client.email || '';
       document.getElementById('client-emailcc').value = client.emailCC || '';
@@ -460,7 +459,6 @@ const app = {
       nombre: document.getElementById('client-nombre').value,
       tipoDoc: document.getElementById('client-tipodoc').value,
       numDoc: document.getElementById('client-numdoc').value,
-      dv: document.getElementById('client-dv').value,
       contacto: document.getElementById('client-contacto').value,
       email: document.getElementById('client-email').value,
       emailCC: document.getElementById('client-emailcc').value,
@@ -777,7 +775,7 @@ const app = {
     if (!c) return;
 
     document.getElementById('manual-cliente-nombre').value = c.nombre;
-    document.getElementById('manual-cliente-doc').value = `${c.tipoDoc || 'NIT'}: ${c.numDoc}${c.dv ? '-' + c.dv : ''}`;
+    document.getElementById('manual-cliente-doc').value = `${c.tipoDoc || 'NIT'}: ${c.numDoc}`;
     document.getElementById('manual-cliente-email').value = c.email;
     document.getElementById('manual-cliente-emailcc').value = c.emailCC || '';
     document.getElementById('manual-cliente-ciudad').value = c.ciudad || '';
@@ -905,7 +903,6 @@ const app = {
       document.getElementById('emisor-nombre').value = emisor.nombre || '';
       document.getElementById('emisor-tipodoc').value = emisor.tipoDoc || 'CC';
       document.getElementById('emisor-numdoc').value = emisor.numDoc || '';
-      document.getElementById('emisor-dv').value = emisor.dv || '';
       document.getElementById('emisor-profesion').value = emisor.profesion || '';
       document.getElementById('emisor-email').value = emisor.email || '';
       document.getElementById('emisor-telefono').value = emisor.telefono || '';
@@ -955,7 +952,6 @@ const app = {
       nombre: document.getElementById('emisor-nombre').value,
       tipoDoc: document.getElementById('emisor-tipodoc').value,
       numDoc: document.getElementById('emisor-numdoc').value,
-      dv: document.getElementById('emisor-dv').value,
       profesion: document.getElementById('emisor-profesion').value,
       email: document.getElementById('emisor-email').value,
       telefono: document.getElementById('emisor-telefono').value,

@@ -164,7 +164,7 @@ async function generateCuentaCobroPDF(cuenta, emisor) {
         doc.font('Helvetica').fontSize(8).fillColor(textSecondary)
            .text(emisor.profesion || 'Prestador de Servicios Profesionales', emisorTextX, subTitleY, { width: 260 });
         
-        const emisorDocStr = `${emisor.tipoDoc || 'CC'}: ${emisor.numDoc}${emisor.dv ? '-' + emisor.dv : ''}`;
+        const emisorDocStr = `${emisor.tipoDoc || 'CC'}: ${emisor.numDoc}`;
         doc.font('Helvetica').fontSize(7.5).fillColor(textMuted)
            .text(`${emisorDocStr}  •  ${emisor.ciudad || 'Colombia'}`, emisorTextX, doc.y + 2);
       }
@@ -259,7 +259,7 @@ async function generateCuentaCobroPDF(cuenta, emisor) {
       doc.font('Helvetica-Bold').fontSize(10).fillColor(brandDark)
          .text(emisor.nombre, eBoxX + 12, cardY + 24, { width: cardWidth - 24, height: 14, ellipsis: true });
 
-      const emisorFullDoc = `${emisor.tipoDoc || 'CC'}: ${emisor.numDoc}${emisor.dv ? '-' + emisor.dv : ''}`;
+      const emisorFullDoc = `${emisor.tipoDoc || 'CC'}: ${emisor.numDoc}`;
       doc.font('Helvetica').fontSize(8).fillColor(textSecondary)
          .text(emisorFullDoc, eBoxX + 12, cardY + 40);
 
@@ -423,7 +423,7 @@ async function generateCuentaCobroPDF(cuenta, emisor) {
       doc.font('Helvetica-Bold').fontSize(9).fillColor(brandDark)
          .text(emisor.nombre, leftX, signatureY + 26);
       doc.font('Helvetica').fontSize(7.5).fillColor(textSecondary)
-         .text(`${emisor.tipoDoc || 'CC'}: ${emisor.numDoc}${emisor.dv ? '-' + emisor.dv : ''}`, leftX, signatureY + 37);
+         .text(`${emisor.tipoDoc || 'CC'}: ${emisor.numDoc}`, leftX, signatureY + 37);
       doc.font('Helvetica').fontSize(7).fillColor(textMuted)
          .text(emisor.profesion || 'Prestador de Servicios Independiente', leftX, signatureY + 47);
 
